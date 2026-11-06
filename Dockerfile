@@ -2,6 +2,9 @@
 FROM rust:1.88-slim AS builder
 WORKDIR /usr/src/app
 
+# Устанавливаем pkg-config и OpenSSL (нужны для reqwest)
+RUN apt-get update && apt-get install -y pkg-config libssl-dev
+
 # Копируем ВСЕ файлы из папки проекта в контейнер
 COPY . .
 
@@ -12,8 +15,8 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 WORKDIR /app
 
-# Устанавливаем сертификаты (нужны для работы сети)
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Устанавливаем сертификаты и OpenSSL для запуска
+RUN apt-get update && apt-get install -y ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
 
 # Копируем скомпилированный бинарник из первого этапа
 COPY --from=builder /usr/src/app/target/release/snake-tma .
