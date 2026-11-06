@@ -1,0 +1,53 @@
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --gray: #94a3b8;
+    --yellow: #facc15;
+    --green: #22c55e;
+    --red: #ef4444;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Экран логина */
+#login-screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 100; }
+.login-box { background: var(--card); padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.login-box h1 { color: var(--yellow); margin-bottom: 8px; font-size: 28px; }
+.login-box p { color: var(--gray); margin-bottom: 24px; }
+.department-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.department-tabs button { flex: 1; padding: 12px; background: var(--bg); color: var(--gray); border: 2px solid transparent; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+.department-tabs button.active { border-color: var(--yellow); color: var(--yellow); background: rgba(250, 204, 21, 0.1); }
+#pin-input { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--bg); color: var(--text); font-size: 20px; text-align: center; margin-bottom: 16px; }
+.btn-login { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--yellow); color: #000; font-size: 18px; font-weight: bold; cursor: pointer; }
+
+/* Основной экран */
+#app-screen { display: none; flex-direction: column; height: 100%; }
+.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: var(--card); }
+.status-indicator { display: flex; align-items: center; gap: 8px; font-weight: bold; }
+.dot { width: 12px; height: 12px; border-radius: 50%; }
+.dot.online { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dot.offline { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.department-title { font-size: 20px; font-weight: bold; color: var(--yellow); }
+.btn-logout { background: var(--red); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+.orders-grid { padding: 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; overflow-y: auto; flex: 1; align-content: start; }
+.empty-state { color: var(--gray); text-align: center; grid-column: 1 / -1; margin-top: 50px; font-size: 18px; }
+
+/* Карточка заказа */
+.order-card { background: var(--card); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; border-left: 6px solid var(--yellow); }
+.order-card.accepted { border-left-color: var(--gray); }
+.order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.order-num { font-size: 32px; font-weight: 800; }
+.order-timer { font-size: 20px; font-weight: bold; color: var(--gray); }
+.order-timer.warning { color: var(--yellow); }
+.order-timer.danger { color: var(--red); }
+.order-items { flex: 1; margin-bottom: 16px; }
+.order-item { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+.order-item-name { font-weight: bold; }
+.order-item-qty { color: var(--yellow); font-weight: bold; }
+.order-comment { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; font-style: italic; color: var(--gray); margin-bottom: 16px; font-size: 14px; }
+.btn-action { width: 100%; padding: 16px; border-radius: 12px; border: none; font-size: 18px; font-weight: bold; cursor: pointer; }
+.btn-accept { background: var(--yellow); color: #000; }
+.btn-ready { background: var(--green); color: white; }
