@@ -3,110 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Меню</title>
+    <title>Sunrise Valley</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --primary: #ff5a00; --bg: #f7f7f7; --card: #ffffff; --text: #1a1a1a; --subtext: #8a8a8a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: var(--text); padding-bottom: 100px; }
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap');
+
+        :root {
+            --navy: #0f172a;
+            --yellow: #facc15;
+            --cream: #f8fafc;
+            --white: #ffffff;
+            --gray: #64748b;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            --radius: 16px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Manrope', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        .header { background: var(--card); padding: 20px; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 0 0 20px 20px; margin-bottom: 15px; }
-        .header h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-        .header p { color: var(--subtext); font-size: 14px; font-weight: 500; }
+        body { background: var(--cream); color: var(--navy); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* Экран логина/загрузки */
+        #loader { position: fixed; inset: 0; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: var(--white); }
+        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.2); border-top-color: var(--yellow); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Шапка */
+        .header { background: var(--navy); color: var(--white); padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2); z-index: 10; }
+        .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
+        .header p { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+
+        /* Основной контент */
+        .main-content { flex: 1; display: flex; overflow: hidden; }
+
+        /* Левое меню категорий */
+        .sidebar { width: 100px; background: var(--white); overflow-y: auto; border-right: 1px solid #e2e8f0; }
+        .sidebar button { width: 100%; padding: 16px 8px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--gray); cursor: pointer; text-align: left; border-left: 4px solid transparent; transition: 0.2s; }
+        .sidebar button.active { color: var(--navy); background: #f1f5f9; border-left-color: var(--yellow); }
+
+        /* Сетка товаров */
+        .products-area { flex: 1; padding: 16px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
         
-        .tabs { display: flex; gap: 10px; padding: 0 20px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tabs button { padding: 10px 20px; border: none; border-radius: 30px; background: var(--card); font-weight: 600; color: var(--subtext); cursor: pointer; white-space: nowrap; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .tabs button.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(255, 90, 0, 0.3); }
-        
-        .container { padding: 0 20px; }
-        .category { display: none; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .category.active { display: grid; }
-        
-        .item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .item-img { width: 100%; height: 100px; border-radius: 12px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; }
-        .item-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
-        .item-desc { font-size: 12px; color: var(--subtext); margin-bottom: 10px; flex-grow: 1; }
-        .item-bottom { display: flex; justify-content: space-between; align-items: center; }
-        .price { font-weight: 800; font-size: 16px; }
-        .btn-add { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        
-        .cart-fab { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--primary); color: #fff; padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; box-shadow: 0 10px 25px rgba(255, 90, 0, 0.4); cursor: pointer; z-index: 50; }
-        
-        .cart-modal { position: fixed; inset: 0; background: var(--bg); z-index: 100; transform: translateY(100%); transition: transform 0.3s; display: flex; flex-direction: column; }
-        .cart-modal.open { transform: translateY(0); }
-        .cart-header { padding: 20px; display: flex; align-items: center; gap: 15px; background: var(--card); border-bottom: 1px solid #eee; }
-        .cart-header h2 { font-size: 20px; font-weight: 800; }
-        .btn-back { background: none; border: none; font-size: 24px; cursor: pointer; }
-        .cart-body { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        
-        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
-        .cart-item-info { flex-grow: 1; }
-        .cart-item-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-        .cart-item-price { font-weight: 800; }
-        .cart-controls { display: flex; align-items: center; gap: 10px; background: #f0f0f0; border-radius: 20px; padding: 4px; }
-        .cart-controls button { width: 28px; height: 28px; border-radius: 50%; border: none; background: #fff; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        
-        .cart-footer { padding: 20px; background: var(--card); border-top: 1px solid #eee; }
-        .cart-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; margin-bottom: 15px; }
-        .btn-checkout { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; }
-        
-        .status-screen { position: fixed; inset: 0; background: var(--card); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
-        .status-icon { font-size: 80px; margin-bottom: 20px; }
-        .status-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
-        .status-desc { color: var(--subtext); font-size: 16px; line-height: 1.5; }
+        .product-card { background: var(--white); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.1s; }
+        .product-card:active { transform: scale(0.97); }
+        .product-img { width: 100%; height: 90px; border-radius: 12px; background: #e2e8f0; margin-bottom: 8px; object-fit: cover; }
+        .product-title { font-size: 14px; font-weight: 700; line-height: 1.2; margin-bottom: 4px; }
+        .product-desc { font-size: 11px; color: var(--gray); margin-bottom: 8px; flex-grow: 1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .product-bottom { display: flex; justify-content: space-between; align-items: center; }
+        .product-price { font-weight: 800; font-size: 15px; }
+        .btn-add { width: 28px; height: 28px; border-radius: 50%; background: var(--yellow); color: var(--navy); border: none; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+        /* Корзина (кнопка) */
+        .cart-fab { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--yellow); color: var(--navy); padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(250, 204, 21, 0.4); cursor: pointer; z-index: 50; transform: translateY(100px); transition: transform 0.3s; }
+        .cart-fab.visible { transform: translateY(0); }
+
+        /* Модалка выбора размера */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: flex-end; }
+        .modal-overlay.open { display: flex; }
+        .modal-content { background: var(--white); width: 100%; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s; max-height: 80vh; overflow-y: auto; }
+        .modal-overlay.open .modal-content { transform: translateY(0); }
+        .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+        .variant-option { display: flex; justify-content: space-between; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; margin-bottom: 10px; cursor: pointer; font-weight: 600; }
+        .variant-option.selected { border-color: var(--yellow); background: #fefce8; }
+        .btn-primary { width: 100%; padding: 18px; background: var(--navy); color: var(--white); border: none; border-radius: 16px; font-size: 18px; font-weight: 700; margin-top: 16px; cursor: pointer; }
+
+        /* Модалка корзины */
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+        .cart-item-info h4 { font-size: 15px; font-weight: 700; }
+        .cart-item-info p { font-size: 13px; color: var(--gray); }
+        .cart-controls { display: flex; align-items: center; gap: 12px; background: #f1f5f9; padding: 4px 8px; border-radius: 20px; }
+        .cart-controls button { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--white); font-weight: bold; cursor: pointer; }
+        .cart-comment { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 12px; margin-top: 16px; font-family: inherit; font-size: 14px; resize: none; }
+
+        /* Экран статуса */
+        #status-screen { position: fixed; inset: 0; background: var(--cream); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+        .status-order-num { font-size: 80px; font-weight: 800; color: var(--navy); line-height: 1; margin-bottom: 8px; }
+        .status-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: var(--yellow); }
+        .status-timer { font-size: 16px; color: var(--gray); margin-bottom: 32px; }
+        .status-steps { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; text-align: left; }
+        .step { display: flex; align-items: center; gap: 12px; opacity: 0.3; transition: 0.3s; }
+        .step.active { opacity: 1; }
+        .step.done { opacity: 1; color: var(--navy); }
+        .step-icon { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--gray); display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .step.active .step-icon { border-color: var(--yellow); background: var(--yellow); color: var(--navy); }
+        .step.done .step-icon { border-color: #22c55e; background: #22c55e; color: white; }
+        .step-text { font-weight: 600; font-size: 16px; }
+        .btn-new-order { padding: 16px 32px; background: var(--navy); color: var(--white); border: none; border-radius: 16px; font-size: 16px; font-weight: 700; margin-top: 32px; cursor: pointer; display: none; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h1>Добро пожаловать 👋</h1>
-    <p id="user-info">Привет, Гость!</p>
-</div>
-
-<div class="tabs">
-    <button class="active" onclick="switchTab('bar', this)">🍹 Напитки</button>
-    <button onclick="switchTab('food', this)">🍔 Еда</button>
-</div>
-
-<div class="container">
-    <div id="bar" class="category active">
-        <div class="item"><div class="item-img">🍺</div><div class="item-title">Пиво разливное</div><div class="item-desc">Светлое, 0.5л</div><div class="item-bottom"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div></div>
-        <div class="item"><div class="item-img">🍹</div><div class="item-title">Куба Либре</div><div class="item-desc">Ром, кола, лайм</div><div class="item-bottom"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div></div>
-        <div class="item"><div class="item-img">🥃</div><div class="item-title">Виски Jameson</div><div class="item-desc">Порция 50мл</div><div class="item-bottom"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div></div>
-        <div class="item"><div class="item-img">🍷</div><div class="item-title">Вино красное</div><div class="item-desc">Бокал 150мл</div><div class="item-bottom"><span class="price">350 ₽</span><button class="btn-add" onclick="addToCart('Вино', 350)">+</button></div></div>
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Загрузка меню...</p>
     </div>
 
-    <div id="food" class="category">
-        <div class="item"><div class="item-img">🍔</div><div class="item-title">Бургер Корабельный</div><div class="item-desc">Говядина, сыр, соус</div><div class="item-bottom"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div></div>
-        <div class="item"><div class="item-img">🍟</div><div class="item-title">Картофель фри</div><div class="item-desc">С соусом на выбор</div><div class="item-bottom"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div></div>
-        <div class="item"><div class="item-img">🌮</div><div class="item-title">Тако с креветкой</div><div class="item-desc">Острое, с лаймом</div><div class="item-bottom"><span class="price">400 ₽</span><button class="btn-add" onclick="addToCart('Тако', 400)">+</button></div></div>
-        <div class="item"><div class="item-img">🥩</div><div class="item-title">Стейк Рибай</div><div class="item-desc">С овощами гриль</div><div class="item-bottom"><span class="price">1200 ₽</span><button class="btn-add" onclick="addToCart('Стейк', 1200)">+</button></div></div>
+    <div class="header">
+        <h1>SUNRISE VALLEY</h1>
+        <p id="greeting">Привет, Гость!</p>
     </div>
-</div>
 
-<div class="cart-fab" onclick="toggleCart()">
-    <span>Корзина</span>
-    <span id="cart-total-fab">0 ₽</span>
-</div>
-
-<div class="cart-modal" id="cart-modal">
-    <div class="cart-header">
-        <button class="btn-back" onclick="toggleCart()">←</button>
-        <h2>Корзина</h2>
+    <div class="main-content">
+        <div class="sidebar" id="sidebar">
+        </div>
+        <div class="products-area" id="products-area">
+        </div>
     </div>
-    <div class="cart-body" id="cart-items"></div>
-    <div class="cart-footer">
-        <div class="cart-total"><span>Итого:</span><span id="cart-total-modal">0 ₽</span></div>
-        <button class="btn-checkout" onclick="submitOrder()">Оформить заказ</button>
-    </div>
-</div>
 
-<div class="status-screen" id="status-screen">
-    <div class="status-icon" id="status-icon">⏳</div>
-    <div class="status-title" id="status-title">Заказ отправлен</div>
-    <div class="status-desc" id="status-desc">Ожидайте подтверждения от бармена...</div>
-</div>
+    <div class="cart-fab" id="cart-fab" onclick="openCart()">
+        <span>Корзина</span>
+        <span id="cart-total">0 GEL</span>
+    </div>
+
+    <div class="modal-overlay" id="size-modal" onclick="closeModal('size-modal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-title" id="size-modal-title">Выберите размер</div>
+            <div id="size-options"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="cart-modal" onclick="closeModal('cart-modal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-title">Ваш заказ</div>
+            <div id="cart-items"></div>
+            <textarea class="cart-comment" id="order-comment" placeholder="Комментарий к заказу (например, без лука)"></textarea>
+            <button class="btn-primary" onclick="submitOrder()">Оформить заказ</button>
+        </div>
+    </div>
+
+    <div id="status-screen">
+        <div class="status-order-num" id="status-order-num">№...</div>
+        <div class="status-title" id="status-title">Готовится</div>
+        <div class="status-timer" id="status-timer">00:00</div>
+
+        <div class="status-steps">
+            <div class="step active" id="step-new">
+                <div class="step-icon">✓</div>
+                <div class="step-text">Заказ принят</div>
+            </div>
+            <div class="step" id="step-accepted">
+                <div class="step-icon">👨‍🍳</div>
+                <div class="step-text">Готовится</div>
+            </div>
+            <div class="step" id="step-ready">
+                <div class="step-icon">🛎</div>
+                <div class="step-text">Готов к выдаче</div>
+            </div>
+        </div>
+
+        <button class="btn-new-order" id="btn-new-order" onclick="resetToMenu()">Сделать новый заказ</button>
+    </div>
 
 <script>
     const tg = window.Telegram?.WebApp;
@@ -116,107 +161,224 @@
     const user = tg?.initDataUnsafe?.user;
     const userId = user ? user.id : 0;
     const userName = user ? user.first_name : 'Гость';
-    document.getElementById('user-info').textContent = `Привет, ${userName}!`;
+    document.getElementById('greeting').textContent = `Привет, ${userName}!`;
 
-    let cart = {};
-    let currentOrderId = null;
+    let categories = [];
+    let products = [];
+    let activeCategoryId = null;
+    let cart = [];
+    let selectedProduct = null;
     let statusInterval = null;
+    let orderStartTime = null;
 
-    function switchTab(id, btn) {
-        document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        btn.classList.add('active');
+    async function init() {
+        try {
+            const res = await fetch('/api/menu');
+            const data = await res.json();
+            categories = data.categories;
+            products = data.products;
+            
+            renderSidebar();
+            if (categories.length > 0) {
+                selectCategory(categories[0].id);
+            }
+            
+            document.getElementById('loader').style.display = 'none';
+            checkActiveOrder();
+        } catch (e) {
+            alert('Ошибка загрузки меню');
+        }
     }
 
-    function addToCart(name, price) {
-        if (!cart[name]) cart[name] = { price, qty: 0 };
-        cart[name].qty += 1;
+    function renderSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.innerHTML = categories.map(c => `
+            <button onclick="selectCategory(${c.id})" id="cat-${c.id}">${c.name}</button>
+        `).join('');
+    }
+
+    function selectCategory(id) {
+        activeCategoryId = id;
+        document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`cat-${id}`).classList.add('active');
+        renderProducts();
+    }
+
+    function renderProducts() {
+        const area = document.getElementById('products-area');
+        const filtered = products.filter(p => p.category_id === activeCategoryId && !p.is_archived);
+        
+        if (filtered.length === 0) {
+            area.innerHTML = '<p style="color:#94a3b8;text-align:center;grid-column:span 2;margin-top:20px;">В этой категории пока пусто</p>';
+            return;
+        }
+
+        area.innerHTML = filtered.map(p => `
+            <div class="product-card" onclick="openProduct(${p.id})">
+                ${p.image_url ? `<img src="${p.image_url}" class="product-img">` : `<div class="product-img" style="display:flex;align-items:center;justify-content:center;font-size:30px;">🍽</div>`}
+                <div class="product-title">${p.name}</div>
+                <div class="product-desc">${p.description || ''}</div>
+                <div class="product-bottom">
+                    <div class="product-price">${p.variants[0].price} GEL</div>
+                    <button class="btn-add">+</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openProduct(id) {
+        selectedProduct = products.find(p => p.id === id);
+        if (!selectedProduct) return;
+
+        document.getElementById('size-modal-title').textContent = selectedProduct.name;
+        const options = document.getElementById('size-options');
+        
+        if (selectedProduct.variants.length === 1) {
+            addToCart(selectedProduct, selectedProduct.variants[0]);
+            return;
+        }
+
+        options.innerHTML = selectedProduct.variants.map(v => `
+            <div class="variant-option" onclick="addToCart(selectedProduct, ${JSON.stringify(v).replace(/"/g, '&quot;')})">
+                <span>${v.name}</span>
+                <span>${v.price} GEL</span>
+            </div>
+        `).join('');
+        
+        openModal('size-modal');
+    }
+
+    function addToCart(product, variant) {
+        const existing = cart.find(i => i.variant.id === variant.id);
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            cart.push({ product, variant, qty: 1 });
+        }
         updateCartUI();
+        closeModal('size-modal');
         if (tg) tg.HapticFeedback.impactOccurred('light');
-    }
-
-    function removeFromCart(name) {
-        if (!cart[name]) return;
-        cart[name].qty -= 1;
-        if (cart[name].qty <= 0) delete cart[name];
-        updateCartUI();
     }
 
     function updateCartUI() {
         let total = 0;
-        for (let key in cart) total += cart[key].price * cart[key].qty;
+        let count = 0;
+        cart.forEach(i => { total += i.variant.price * i.qty; count += i.qty; });
         
-        document.getElementById('cart-total-fab').textContent = `${total} ₽`;
-        document.getElementById('cart-total-modal').textContent = `${total} ₽`;
+        const fab = document.getElementById('cart-fab');
+        document.getElementById('cart-total').textContent = `${total} GEL`;
         
-        let html = '';
-        for (let key in cart) {
-            html += `
+        if (count > 0) fab.classList.add('visible');
+        else fab.classList.remove('visible');
+
+        const cartItems = document.getElementById('cart-items');
+        cartItems.innerHTML = cart.map((i, index) => `
             <div class="cart-item">
                 <div class="cart-item-info">
-                    <div class="cart-item-title">${key}</div>
-                    <div class="cart-item-price">${cart[key].price} ₽</div>
+                    <h4>${i.product.name}</h4>
+                    <p>${i.variant.name} • ${i.variant.price} GEL</p>
                 </div>
                 <div class="cart-controls">
-                    <button onclick="removeFromCart('${key}')">-</button>
-                    <span>${cart[key].qty}</span>
-                    <button onclick="addToCart('${key}', ${cart[key].price})">+</button>
+                    <button onclick="changeQty(${index}, -1)">-</button>
+                    <span>${i.qty}</span>
+                    <button onclick="changeQty(${index}, 1)">+</button>
                 </div>
-            </div>`;
-        }
-        document.getElementById('cart-items').innerHTML = html || '<p style="color:#8a8a8a;text-align:center;margin-top:20px;">Корзина пуста</p>';
+            </div>
+        `).join('');
     }
 
-    function toggleCart() {
-        document.getElementById('cart-modal').classList.toggle('open');
+    function changeQty(index, delta) {
+        cart[index].qty += delta;
+        if (cart[index].qty <= 0) cart.splice(index, 1);
+        updateCartUI();
     }
 
     async function submitOrder() {
-        const items = [];
-        for (let key in cart) items.push({ name: key, price: cart[key].price, qty: cart[key].qty });
-        if (items.length === 0) return alert('Корзина пуста');
-
-        toggleCart();
+        if (cart.length === 0) return;
         
+        const comment = document.getElementById('order-comment').value;
+        const items = cart.map(i => ({ variant_id: i.variant.id, qty: i.qty }));
+
         const res = await fetch('/api/order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, user_name: userName, items })
+            body: JSON.stringify({ user_id: userId, user_name: userName, items, comment })
         });
 
-        if (res.ok) {
-            cart = {}; updateCartUI();
+        const data = await res.json();
+        
+        if (data.ok) {
+            cart = [];
+            updateCartUI();
+            closeModal('cart-modal');
+            document.getElementById('order-comment').value = '';
+            
             if (tg) tg.HapticFeedback.notificationOccurred('success');
-            
-            // Показываем экран статуса
-            document.getElementById('status-screen').style.display = 'flex';
-            
-            // Начинаем опрос статуса (каждые 3 секунды)
-            if (statusInterval) clearInterval(statusInterval);
-            statusInterval = setInterval(async () => {
-                const ordersRes = await fetch('/api/orders');
-                const orders = await ordersRes.json();
-                // Ищем последний заказ этого пользователя
-                const myOrder = orders.filter(o => o.user_id === userId).sort((a,b) => b.id.localeCompare(a.id))[0];
-                
-                if (myOrder) {
-                    if (myOrder.status === 'accepted') {
-                        document.getElementById('status-icon').textContent = '👨‍🍳';
-                        document.getElementById('status-title').textContent = 'Принят в работу';
-                        document.getElementById('status-desc').textContent = 'Бармен уже готовит ваш заказ.';
-                    } else if (myOrder.status === 'done') {
-                        document.getElementById('status-icon').textContent = '✅';
-                        document.getElementById('status-title').textContent = 'Выполнен';
-                        document.getElementById('status-desc').textContent = 'Приятного отдыха!';
-                        clearInterval(statusInterval);
-                    }
-                }
-            }, 3000);
+            showStatus(data.order_number);
         } else {
-            alert('Ошибка при отправке');
+            alert(data.error || 'Ошибка при отправке');
         }
     }
+
+    function showStatus(orderNum) {
+        document.getElementById('status-screen').style.display = 'flex';
+        document.getElementById('status-order-num').textContent = `№${orderNum}`;
+        orderStartTime = Date.now();
+        
+        document.getElementById('step-new').className = 'step done';
+        document.getElementById('step-accepted').className = 'step active';
+        document.getElementById('step-ready').className = 'step';
+        document.getElementById('status-title').textContent = 'Ожидает принятия';
+        document.getElementById('btn-new-order').style.display = 'none';
+
+        if (statusInterval) clearInterval(statusInterval);
+        statusInterval = setInterval(checkOrderStatus, 2000);
+    }
+
+    async function checkOrderStatus() {
+        const res = await fetch(`/api/orders`);
+        const orders = await res.json();
+        const myOrder = orders.find(o => o.user_id === userId);
+        
+        if (myOrder) {
+            if (myOrder.status === 'accepted') {
+                document.getElementById('status-title').textContent = 'Готовится';
+                document.getElementById('step-accepted').className = 'step done';
+                document.getElementById('step-ready').className = 'step active';
+            } else if (myOrder.status === 'ready') {
+                document.getElementById('status-title').textContent = 'Готов к выдаче!';
+                document.getElementById('step-ready').className = 'step done';
+                document.getElementById('btn-new-order').style.display = 'block';
+                clearInterval(statusInterval);
+                if (tg) tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+        
+        const elapsed = Math.floor((Date.now() - orderStartTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        document.getElementById('status-timer').textContent = `${m}:${s}`;
+    }
+
+    async function checkActiveOrder() {
+        if (!userId) return;
+        const res = await fetch(`/api/orders`);
+        const orders = await res.json();
+        const myOrder = orders.find(o => o.user_id === userId);
+        if (myOrder) {
+            showStatus(myOrder.order_number);
+        }
+    }
+
+    function resetToMenu() {
+        document.getElementById('status-screen').style.display = 'none';
+    }
+
+    function openCart() { openModal('cart-modal'); }
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    init();
 </script>
 </body>
 </html>
