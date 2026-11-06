@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sunrise KDS</title>
+    <link rel="stylesheet" href="/css/kds.css">
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h1>Sunrise Valley</h1>
+            <p>Выберите цех и введите пин-код</p>
+            
+            <div class="department-tabs">
+                <button onclick="setDept('bar')" id="tab-bar" class="active">Бар</button>
+                <button onclick="setDept('kitchen')" id="tab-kitchen">Кухня</button>
+            </div>
+
+            <input type="password" id="pin-input" placeholder="Пин-код" onkeypress="if(event.key === 'Enter') login()">
+            <button onclick="login()" class="btn-login">Войти</button>
+        </div>
+    </div>
+
+    <div id="app-screen">
+        <div class="top-bar">
+            <div class="status-indicator">
+                <div class="dot online"></div>
+                <span id="conn-status">Онлайн</span>
+            </div>
+            <div class="department-title" id="current-dept">Бар</div>
+            <button class="btn-logout" onclick="logout()">Выйти</button>
+        </div>
+
+        <div class="orders-grid" id="orders-grid">
+            <div class="empty-state">Ожидание заказов...</div>
+        </div>
+    </div>
+
+    <script src="/js/kds.js"></script>
+</body>
+</html>
