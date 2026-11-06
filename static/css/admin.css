@@ -1,0 +1,62 @@
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --gray: #94a3b8;
+    --primary: #3b82f6;
+    --yellow: #facc15;
+    --green: #22c55e;
+    --red: #ef4444;
+    --border: #334155;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); padding: 20px; max-width: 800px; margin: 0 auto; }
+
+#login-screen { display: flex; align-items: center; justify-content: center; height: 80vh; }
+.login-box { background: var(--card); padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.login-box h1 { margin-bottom: 24px; color: var(--yellow); }
+.login-box input { width: 100%; padding: 16px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-size: 18px; text-align: center; margin-bottom: 16px; }
+.login-box button { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--primary); color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+
+#app-screen { display: none; }
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+header h2 { color: var(--yellow); }
+.btn-logout { background: var(--red); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+.shift-panel { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid var(--gray); }
+.shift-panel.open { border-left-color: var(--green); }
+.shift-status { font-size: 18px; font-weight: bold; }
+#shift-status-text { color: var(--red); }
+.shift-panel.open #shift-status-text { color: var(--green); }
+#btn-shift { padding: 12px 24px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; background: var(--green); color: white; }
+.shift-panel.open #btn-shift { background: var(--red); }
+
+.tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.tabs button { flex: 1; padding: 16px; border-radius: 12px; border: none; background: var(--card); color: var(--gray); font-size: 16px; font-weight: bold; cursor: pointer; }
+.tabs button.active { background: var(--primary); color: white; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.order-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 16px; border-left: 6px solid var(--primary); }
+.order-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 20px; font-weight: bold; }
+.order-num { color: var(--primary); }
+.order-user { color: var(--yellow); }
+.order-items { margin-bottom: 16px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; }
+.order-item { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.order-total { font-size: 20px; font-weight: bold; text-align: right; margin-bottom: 16px; }
+.order-actions { display: flex; gap: 10px; }
+.order-actions button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+.btn-accept { background: var(--yellow); color: #000; }
+.btn-ready { background: var(--green); color: white; }
+.btn-delete { background: var(--red); color: white; flex: 0 0 50px; }
+
+.menu-item { background: var(--card); padding: 16px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.menu-info h4 { font-size: 16px; }
+.menu-info p { color: var(--gray); font-size: 14px; }
+.toggle-stop { width: 50px; height: 28px; border-radius: 20px; border: none; background: var(--gray); position: relative; cursor: pointer; transition: 0.3s; }
+.toggle-stop::after { content: ''; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: white; transition: 0.3s; }
+.toggle-stop.stopped { background: var(--red); }
+.toggle-stop.stopped::after { left: 26px; }
+
+.empty { color: var(--gray); text-align: center; margin-top: 40px; font-size: 18px; }
