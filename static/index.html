@@ -10,51 +10,49 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); padding-bottom: 100px; }
         
-        /* Шапка */
         .header { background: var(--card); padding: 20px; position: sticky; top: 0; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-radius: 0 0 20px 20px; margin-bottom: 15px; }
         .header h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
         .header p { color: var(--subtext); font-size: 14px; font-weight: 500; }
         
-        /* Табы (категории) */
         .tabs { display: flex; gap: 10px; padding: 0 20px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
         .tabs::-webkit-scrollbar { display: none; }
         .tabs button { padding: 10px 20px; border: none; border-radius: 30px; background: var(--card); font-weight: 600; color: var(--subtext); cursor: pointer; white-space: nowrap; transition: 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .tabs button.active { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(255, 90, 0, 0.3); }
         
-        /* Сетка товаров */
-        .container { padding: 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .category { display: none; grid-column: span 2; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .container { padding: 0 20px; }
+        .category { display: none; grid-template-columns: 1fr 1fr; gap: 15px; }
         .category.active { display: grid; }
         
-        /* Карточка товара */
-        .item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: transform 0.1s; }
-        .item:active { transform: scale(0.97); }
-        .item-img { width: 100%; height: 120px; border-radius: 12px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; }
+        .item { background: var(--card); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .item-img { width: 100%; height: 100px; border-radius: 12px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; }
         .item-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.2; }
         .item-desc { font-size: 12px; color: var(--subtext); margin-bottom: 10px; flex-grow: 1; }
         .item-bottom { display: flex; justify-content: space-between; align-items: center; }
         .price { font-weight: 800; font-size: 16px; }
-        .btn-add { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(255, 90, 0, 0.3); }
+        .btn-add { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         
-        /* Корзина */
         .cart-fab { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--primary); color: #fff; padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 16px; box-shadow: 0 10px 25px rgba(255, 90, 0, 0.4); cursor: pointer; z-index: 50; }
-        .cart-modal { position: fixed; inset: 0; background: var(--bg); z-index: 100; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1); display: flex; flex-direction: column; }
+        
+        .cart-modal { position: fixed; inset: 0; background: var(--bg); z-index: 100; transform: translateY(100%); transition: transform 0.3s; display: flex; flex-direction: column; }
         .cart-modal.open { transform: translateY(0); }
         .cart-header { padding: 20px; display: flex; align-items: center; gap: 15px; background: var(--card); border-bottom: 1px solid #eee; }
         .cart-header h2 { font-size: 20px; font-weight: 800; }
         .btn-back { background: none; border: none; font-size: 24px; cursor: pointer; }
         .cart-body { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        .cart-item { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; }
-        .cart-item-title { font-weight: 600; font-size: 15px; }
+        
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        .cart-item-info { flex-grow: 1; }
+        .cart-item-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
         .cart-item-price { font-weight: 800; }
+        .cart-controls { display: flex; align-items: center; gap: 10px; background: #f0f0f0; border-radius: 20px; padding: 4px; }
+        .cart-controls button { width: 28px; height: 28px; border-radius: 50%; border: none; background: #fff; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
         .cart-footer { padding: 20px; background: var(--card); border-top: 1px solid #eee; }
         .cart-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: 800; margin-bottom: 15px; }
-        .btn-checkout { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 5px 15px rgba(255, 90, 0, 0.3); }
+        .btn-checkout { width: 100%; padding: 18px; background: var(--primary); color: #fff; border: none; border-radius: 16px; font-size: 18px; font-weight: 700; cursor: pointer; }
         
-        /* Экран статуса */
         .status-screen { position: fixed; inset: 0; background: var(--card); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
-        .status-icon { font-size: 80px; margin-bottom: 20px; animation: bounce 2s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .status-icon { font-size: 80px; margin-bottom: 20px; }
         .status-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
         .status-desc { color: var(--subtext); font-size: 16px; line-height: 1.5; }
     </style>
@@ -63,7 +61,7 @@
 
 <div class="header">
     <h1>Добро пожаловать 👋</h1>
-    <p id="user-info">Загрузка...</p>
+    <p id="user-info">Привет, Гость!</p>
 </div>
 
 <div class="tabs">
@@ -73,39 +71,17 @@
 
 <div class="container">
     <div id="bar" class="category active">
-        <div class="item">
-            <div class="item-img">🍺</div>
-            <div class="item-title">Пиво разливное</div>
-            <div class="item-desc">Светлое, 0.5л</div>
-            <div class="item-bottom"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-img">🍹</div>
-            <div class="item-title">Куба Либре</div>
-            <div class="item-desc">Ром, кола, лайм</div>
-            <div class="item-bottom"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-img">🥃</div>
-            <div class="item-title">Виски Jameson</div>
-            <div class="item-desc">Порция 50мл</div>
-            <div class="item-bottom"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div>
-        </div>
+        <div class="item"><div class="item-img">🍺</div><div class="item-title">Пиво разливное</div><div class="item-desc">Светлое, 0.5л</div><div class="item-bottom"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div></div>
+        <div class="item"><div class="item-img">🍹</div><div class="item-title">Куба Либре</div><div class="item-desc">Ром, кола, лайм</div><div class="item-bottom"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div></div>
+        <div class="item"><div class="item-img">🥃</div><div class="item-title">Виски Jameson</div><div class="item-desc">Порция 50мл</div><div class="item-bottom"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div></div>
+        <div class="item"><div class="item-img">🍷</div><div class="item-title">Вино красное</div><div class="item-desc">Бокал 150мл</div><div class="item-bottom"><span class="price">350 ₽</span><button class="btn-add" onclick="addToCart('Вино', 350)">+</button></div></div>
     </div>
 
     <div id="food" class="category">
-        <div class="item">
-            <div class="item-img">🍔</div>
-            <div class="item-title">Бургер Корабельный</div>
-            <div class="item-desc">Говядина, сыр, соус</div>
-            <div class="item-bottom"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-img">🍟</div>
-            <div class="item-title">Картофель фри</div>
-            <div class="item-desc">С соусом на выбор</div>
-            <div class="item-bottom"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div>
-        </div>
+        <div class="item"><div class="item-img">🍔</div><div class="item-title">Бургер Корабельный</div><div class="item-desc">Говядина, сыр, соус</div><div class="item-bottom"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div></div>
+        <div class="item"><div class="item-img">🍟</div><div class="item-title">Картофель фри</div><div class="item-desc">С соусом на выбор</div><div class="item-bottom"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div></div>
+        <div class="item"><div class="item-img">🌮</div><div class="item-title">Тако с креветкой</div><div class="item-desc">Острое, с лаймом</div><div class="item-bottom"><span class="price">400 ₽</span><button class="btn-add" onclick="addToCart('Тако', 400)">+</button></div></div>
+        <div class="item"><div class="item-img">🥩</div><div class="item-title">Стейк Рибай</div><div class="item-desc">С овощами гриль</div><div class="item-bottom"><span class="price">1200 ₽</span><button class="btn-add" onclick="addToCart('Стейк', 1200)">+</button></div></div>
     </div>
 </div>
 
@@ -114,7 +90,6 @@
     <span id="cart-total-fab">0 ₽</span>
 </div>
 
-<!-- Модалка корзины -->
 <div class="cart-modal" id="cart-modal">
     <div class="cart-header">
         <button class="btn-back" onclick="toggleCart()">←</button>
@@ -127,7 +102,6 @@
     </div>
 </div>
 
-<!-- Экран статуса -->
 <div class="status-screen" id="status-screen">
     <div class="status-icon" id="status-icon">⏳</div>
     <div class="status-title" id="status-title">Заказ отправлен</div>
@@ -145,6 +119,8 @@
     document.getElementById('user-info').textContent = `Привет, ${userName}!`;
 
     let cart = {};
+    let currentOrderId = null;
+    let statusInterval = null;
 
     function switchTab(id, btn) {
         document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
@@ -160,6 +136,13 @@
         if (tg) tg.HapticFeedback.impactOccurred('light');
     }
 
+    function removeFromCart(name) {
+        if (!cart[name]) return;
+        cart[name].qty -= 1;
+        if (cart[name].qty <= 0) delete cart[name];
+        updateCartUI();
+    }
+
     function updateCartUI() {
         let total = 0;
         for (let key in cart) total += cart[key].price * cart[key].qty;
@@ -169,7 +152,18 @@
         
         let html = '';
         for (let key in cart) {
-            html += `<div class="cart-item"><div><div class="cart-item-title">${key}</div><div style="color:#8a8a8a; font-size:13px;">${cart[key].qty} шт.</div></div><div class="cart-item-price">${cart[key].price * cart[key].qty} ₽</div></div>`;
+            html += `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-title">${key}</div>
+                    <div class="cart-item-price">${cart[key].price} ₽</div>
+                </div>
+                <div class="cart-controls">
+                    <button onclick="removeFromCart('${key}')">-</button>
+                    <span>${cart[key].qty}</span>
+                    <button onclick="addToCart('${key}', ${cart[key].price})">+</button>
+                </div>
+            </div>`;
         }
         document.getElementById('cart-items').innerHTML = html || '<p style="color:#8a8a8a;text-align:center;margin-top:20px;">Корзина пуста</p>';
     }
@@ -194,7 +188,31 @@
         if (res.ok) {
             cart = {}; updateCartUI();
             if (tg) tg.HapticFeedback.notificationOccurred('success');
+            
+            // Показываем экран статуса
             document.getElementById('status-screen').style.display = 'flex';
+            
+            // Начинаем опрос статуса (каждые 3 секунды)
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(async () => {
+                const ordersRes = await fetch('/api/orders');
+                const orders = await ordersRes.json();
+                // Ищем последний заказ этого пользователя
+                const myOrder = orders.filter(o => o.user_id === userId).sort((a,b) => b.id.localeCompare(a.id))[0];
+                
+                if (myOrder) {
+                    if (myOrder.status === 'accepted') {
+                        document.getElementById('status-icon').textContent = '👨‍🍳';
+                        document.getElementById('status-title').textContent = 'Принят в работу';
+                        document.getElementById('status-desc').textContent = 'Бармен уже готовит ваш заказ.';
+                    } else if (myOrder.status === 'done') {
+                        document.getElementById('status-icon').textContent = '✅';
+                        document.getElementById('status-title').textContent = 'Выполнен';
+                        document.getElementById('status-desc').textContent = 'Приятного отдыха!';
+                        clearInterval(statusInterval);
+                    }
+                }
+            }, 3000);
         } else {
             alert('Ошибка при отправке');
         }
