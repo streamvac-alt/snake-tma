@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
@@ -11,28 +11,15 @@ use std::env;
 use tower_http::services::ServeDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct OrderItem {
-    name: String,
-    price: u32,
-    qty: u32,
-}
+struct OrderItem { name: String, price: u32, qty: u32 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Order {
-    id: String,
-    user_id: i64,
-    user_name: String,
-    items: Vec<OrderItem>,
-    total: u32,
-    status: String, // "new", "accepted", "done"
+    id: String, user_id: i64, user_name: String, items: Vec<OrderItem>, total: u32, status: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct OrderPayload {
-    user_id: i64,
-    user_name: String,
-    items: Vec<OrderItem>,
-}
+struct OrderPayload { user_id: i64, user_name: String, items: Vec<OrderItem> }
 
 #[derive(Debug, Serialize)]
 struct OrderResponse { ok: bool }
@@ -40,26 +27,23 @@ struct OrderResponse { ok: bool }
 #[derive(Debug, Deserialize)]
 struct StatusPayload { id: String, status: String }
 
+#[derive(Debug, Deserialize)]
+struct AdminQuery { key: String }
+
 struct AppState {
     bot_token: String,
     admin_chat_id: String,
+    admin_key: String,
     orders: Mutex<HashMap<String, Order>>,
 }
 
-async fn make_order(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<OrderPayload>,
-) -> impl IntoResponse {
+async fn make_order(State(state): State<Arc<AppState>>, Json(payload): Json<OrderPayload>) -> impl IntoResponse {
     let total: u32 = payload.items.iter().map(|i| i.price * i.qty).sum();
     let id = format!("{}_{}", chrono::Utc::now().timestamp_millis(), payload.user_id);
     
     let order = Order {
-        id: id.clone(),
-        user_id: payload.user_id,
-        user_name: payload.user_name.clone(),
-        items: payload.items.clone(),
-        total,
-        status: "new".to_string(),
+        id: id.clone(), user_id: payload.user_id, user_name: payload.user_name.clone(),
+        items: payload.items.clone(), total, status: "new".to_string(),
     };
 
     state.orders.lock().unwrap().insert(id.clone(), order);
@@ -70,7 +54,7 @@ async fn make_order(
     }
 
     let message = format!(
-        "🔥 **НОВЫЙ ЗАКАЗ**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} руб.\n\n_Для смены статуса зайдите в админку._",
+        "🔥 **НОВЫЙ ЗАКАЗ**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} руб.",
         payload.user_name, items_text, total
     );
 
@@ -78,15 +62,24 @@ async fn make_order(
     (StatusCode::OK, Json(OrderResponse { ok: true }))
 }
 
-async fn get_orders(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+// Защищенный эндпоинт: отдает заказы ТОЛЬКО если передан правильный ключ
+async fn get_orders(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>) -> impl IntoResponse {
+    if query.key != state.admin_key {
+        return (StatusCode::UNAUTHORIZED, Json(Vec::<Order>::new()));
+    }
     let orders = state.orders.lock().unwrap();
-    Json(orders.values().cloned().collect::<Vec<Order>>())
+    (StatusCode::OK, Json(orders.values().cloned().collect::<Vec<Order>>()))
 }
 
+// Защищенный эндпоинт смены статуса
 async fn update_status(
     State(state): State<Arc<AppState>>,
+    Query(query): Query<AdminQuery>,
     Json(payload): Json<StatusPayload>,
 ) -> impl IntoResponse {
+    if query.key != state.admin_key {
+        return (StatusCode::UNAUTHORIZED, Json(OrderResponse { ok: false }));
+    }
     let mut orders = state.orders.lock().unwrap();
     if let Some(order) = orders.get_mut(&payload.id) {
         order.status = payload.status.clone();
@@ -107,6 +100,7 @@ async fn main() {
     let state = Arc::new(AppState {
         bot_token: env::var("BOT_TOKEN").unwrap_or_default(),
         admin_chat_id: env::var("ADMIN_CHAT_ID").unwrap_or_default(),
+        admin_key: env::var("ADMIN_KEY").unwrap_or_else(|_| "default123".to_string()),
         orders: Mutex::new(HashMap::new()),
     });
 
