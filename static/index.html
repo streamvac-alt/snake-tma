@@ -8,66 +8,55 @@
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-
-    <div id="loader">
-        <div class="spinner"></div>
-        <p>Загрузка меню...</p>
-    </div>
-
-    <div class="header">
-        <h1>SUNRISE VALLEY</h1>
-        <p id="greeting">Привет, Гость!</p>
-    </div>
-
-    <div class="main-content">
-        <div class="sidebar" id="sidebar"></div>
-        <div class="products-area" id="products-area"></div>
-    </div>
-
-    <div class="cart-fab" id="cart-fab" onclick="openCart()">
-        <span>Корзина</span>
-        <span id="cart-total">0 GEL</span>
-    </div>
-
-    <div class="modal-overlay" id="size-modal" onclick="closeModal('size-modal')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-title" id="size-modal-title">Выберите размер</div>
-            <div id="size-options"></div>
+    <div id="app-container">
+        <div id="loader">
+            <div class="spinner"></div>
+            <p>Загрузка меню...</p>
         </div>
-    </div>
 
-    <div class="modal-overlay" id="cart-modal" onclick="closeModal('cart-modal')">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <div class="modal-title">Ваш заказ</div>
-            <div id="cart-items"></div>
-            <textarea class="cart-comment" id="order-comment" placeholder="Комментарий к заказу (например, без лука)"></textarea>
-            <button class="btn-primary" onclick="submitOrder()">Оформить заказ</button>
+        <div class="header">
+            <h1>SUNRISE VALLEY</h1>
+            <p id="greeting">Привет, Гость!</p>
         </div>
-    </div>
 
-    <div id="status-screen">
-        <div class="status-order-num" id="status-order-num">№...</div>
-        <div class="status-title" id="status-title">Готовится</div>
-        <div class="status-timer" id="status-timer">00:00</div>
+        <div class="main-content">
+            <div class="sidebar" id="sidebar"></div>
+            <div class="products-area" id="products-area"></div>
+        </div>
 
-        <div class="status-steps">
-            <div class="step active" id="step-new">
-                <div class="step-icon">✓</div>
-                <div class="step-text">Заказ принят</div>
-            </div>
-            <div class="step" id="step-accepted">
-                <div class="step-icon">👨‍🍳</div>
-                <div class="step-text">Готовится</div>
-            </div>
-            <div class="step" id="step-ready">
-                <div class="step-icon">🛎</div>
-                <div class="step-text">Готов к выдаче</div>
+        <div class="cart-fab" id="cart-fab" onclick="openCart()">
+            <span>Корзина</span>
+            <span id="cart-total">0 GEL</span>
+        </div>
+
+        <div class="modal-overlay" id="size-modal" onclick="closeModal('size-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-title" id="size-modal-title">Выберите размер</div>
+                <div id="size-options"></div>
             </div>
         </div>
 
-        <button class="btn-new-order" id="btn-new-order" onclick="resetToMenu()">Сделать новый заказ</button>
-    </div>
+        <div class="modal-overlay" id="cart-modal" onclick="closeModal('cart-modal')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-title">Ваш заказ</div>
+                <div id="cart-items"></div>
+                <textarea class="cart-comment" id="order-comment" placeholder="Комментарий к заказу (например, без лука)"></textarea>
+                <button class="btn-primary" onclick="submitOrder()">Оформить заказ</button>
+            </div>
+        </div>
 
+        <div id="status-screen">
+            <div class="status-order-num" id="status-order-num">№...</div>
+            <div class="status-title" id="status-title">Готовится</div>
+            <div class="status-timer" id="status-timer">00:00</div>
+            <div class="status-steps">
+                <div class="step active" id="step-new"><div class="step-icon">✓</div><div class="step-text">Заказ принят</div></div>
+                <div class="step" id="step-accepted"><div class="step-icon">👨‍🍳</div><div class="step-text">Готовится</div></div>
+                <div class="step" id="step-ready"><div class="step-icon">🛎</div><div class="step-text">Готов к выдаче</div></div>
+            </div>
+            <button class="btn-new-order" id="btn-new-order" onclick="resetToMenu()">Сделать новый заказ</button>
+        </div>
+    </div>
     <script src="/js/app.js"></script>
 </body>
 </html>
