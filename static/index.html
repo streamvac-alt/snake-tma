@@ -7,90 +7,66 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
-        body { background: #f0f2f5; color: #333; padding-bottom: 80px; }
+        body { background: #f4f6f8; color: #333; padding-bottom: 90px; }
         .header { background: #1e293b; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 20px 20px; margin-bottom: 20px; }
         .header h1 { font-size: 24px; margin-bottom: 5px; }
         .header p { color: #94a3b8; font-size: 14px; }
         .tabs { display: flex; gap: 10px; padding: 0 15px; margin-bottom: 15px; overflow-x: auto; }
-        .tabs button { padding: 10px 20px; border: none; border-radius: 20px; background: #fff; font-weight: bold; color: #64748b; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tabs button { padding: 10px 20px; border: none; border-radius: 20px; background: #fff; font-weight: bold; color: #64748b; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.2s; }
         .tabs button.active { background: #3b82f6; color: #fff; }
         .container { padding: 0 15px; }
         .category { display: none; }
         .category.active { display: block; }
-        .item { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .item { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .item-info h3 { font-size: 16px; margin-bottom: 4px; }
         .item-info p { font-size: 13px; color: #64748b; }
         .item-actions { display: flex; align-items: center; gap: 10px; }
         .price { font-weight: bold; font-size: 16px; color: #0f172a; }
-        .btn-add { width: 30px; height: 30px; border-radius: 50%; border: none; background: #3b82f6; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-add { width: 32px; height: 32px; border-radius: 50%; border: none; background: #3b82f6; color: #fff; font-size: 20px; cursor: pointer; }
         .btn-add:active { transform: scale(0.9); }
-        .cart-btn { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #3b82f6; color: #fff; padding: 15px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); cursor: pointer; display: flex; justify-content: space-between; }
-        .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
-        .cart-modal { position: fixed; bottom: -100%; left: 0; right: 0; background: #fff; border-radius: 20px 20px 0 0; padding: 20px; z-index: 11; transition: bottom 0.3s; max-height: 80vh; overflow-y: auto; }
+        
+        .cart-btn { position: fixed; bottom: 20px; left: 15px; right: 15px; background: #3b82f6; color: #fff; padding: 16px 20px; border-radius: 15px; font-weight: bold; font-size: 16px; box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); cursor: pointer; display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+        .cart-badge { background: #ef4444; color: #fff; border-radius: 50%; padding: 2px 8px; font-size: 14px; margin-left: 5px; }
+        
+        .cart-modal { position: fixed; bottom: -100%; left: 0; right: 0; background: #fff; border-radius: 20px 20px 0 0; padding: 20px; z-index: 11; transition: bottom 0.3s; max-height: 90vh; overflow-y: auto; }
         .cart-modal.open { bottom: 0; }
-        .cart-item { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .btn-submit { width: 100%; padding: 15px; background: #10b981; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: bold; display: none; z-index: 20; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4); }
+        .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
+        .cart-item { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+        .btn-submit { width: 100%; padding: 16px; background: #10b981; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        
+        .status-screen { position: fixed; inset: 0; background: #f4f6f8; z-index: 30; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+        .status-icon { font-size: 60px; margin-bottom: 20px; }
+        .status-title { font-size: 22px; font-weight: bold; margin-bottom: 10px; }
+        .status-desc { color: #64748b; font-size: 15px; line-height: 1.5; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <h1>Меню Бара</h1>
-    <p id="table-info">Столик: Загрузка...</p>
+    <p id="user-info">Привет, Гость!</p>
 </div>
 
 <div class="tabs">
     <button class="active" onclick="switchTab('bar', this)">🍸 Бар</button>
     <button onclick="switchTab('food', this)">🍔 Кухня</button>
-    <button onclick="switchTab('services', this)">🛎 Услуги</button>
 </div>
 
 <div class="container">
     <div id="bar" class="category active">
-        <div class="item">
-            <div class="item-info"><h3>Пиво разливное</h3><p>Светлое, 0.5л</p></div>
-            <div class="item-actions"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-info"><h3>Коктейль "Куба Либре"</h3><p>Ром, кола, лайм</p></div>
-            <div class="item-actions"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-info"><h3>Виски Jameson</h3><p>Порция 50мл</p></div>
-            <div class="item-actions"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div>
-        </div>
+        <div class="item"><div class="item-info"><h3>Пиво разливное</h3><p>Светлое, 0.5л</p></div><div class="item-actions"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div></div>
+        <div class="item"><div class="item-info"><h3>Коктейль "Куба Либре"</h3><p>Ром, кола, лайм</p></div><div class="item-actions"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div></div>
+        <div class="item"><div class="item-info"><h3>Виски Jameson</h3><p>Порция 50мл</p></div><div class="item-actions"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div></div>
     </div>
 
     <div id="food" class="category">
-        <div class="item">
-            <div class="item-info"><h3>Бургер "Корабельный"</h3><p>Говядина, сыр, соус</p></div>
-            <div class="item-actions"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-info"><h3>Картофель фри</h3><p>С соусом на выбор</p></div>
-            <div class="item-actions"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-info"><h3>Стейк из лосося</h3><p>С овощами гриль</p></div>
-            <div class="item-actions"><span class="price">890 ₽</span><button class="btn-add" onclick="addToCart('Стейк из лосося', 890)">+</button></div>
-        </div>
-    </div>
-
-    <div id="services" class="category">
-        <div class="item">
-            <div class="item-info"><h3>Вызов официанта</h3><p>Нажмите, если нужна помощь</p></div>
-            <div class="item-actions"><span class="price">0 ₽</span><button class="btn-add" onclick="addToCart('Вызов официанта', 0)">+</button></div>
-        </div>
-        <div class="item">
-            <div class="item-info"><h3>Плед</h3><p>Если стало прохладно</p></div>
-            <div class="item-actions"><span class="price">0 ₽</span><button class="btn-add" onclick="addToCart('Плед', 0)">+</button></div>
-        </div>
+        <div class="item"><div class="item-info"><h3>Бургер "Корабельный"</h3><p>Говядина, сыр, соус</p></div><div class="item-actions"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div></div>
+        <div class="item"><div class="item-info"><h3>Картофель фри</h3><p>С соусом на выбор</p></div><div class="item-actions"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div></div>
     </div>
 </div>
 
 <div class="cart-btn" onclick="toggleCart()">
-    <span>Корзина</span>
+    <span>Корзина <span class="cart-badge" id="cart-count">0</span></span>
     <span id="cart-total">0 ₽</span>
 </div>
 
@@ -98,19 +74,29 @@
 <div class="cart-modal" id="cart-modal">
     <h2 style="margin-bottom:15px;">Ваш заказ</h2>
     <div id="cart-items"></div>
-    <button class="btn-submit" onclick="submitOrder()">Заказать</button>
+    <div style="display:flex; justify-content:space-between; margin-top:20px; font-weight:bold; font-size:18px;">
+        <span>Итого:</span><span id="cart-total-modal">0 ₽</span>
+    </div>
+    <button class="btn-submit" onclick="submitOrder()">Оформить заказ</button>
 </div>
 
-<div class="toast" id="toast">Заказ отправлен!</div>
+<div class="status-screen" id="status-screen">
+    <div class="status-icon" id="status-icon">⏳</div>
+    <div class="status-title" id="status-title">Заказ отправлен</div>
+    <div class="status-desc" id="status-desc">Ожидайте подтверждения от бармена...</div>
+</div>
 
 <script>
     const tg = window.Telegram?.WebApp;
     tg?.ready();
     tg?.expand();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const table = urlParams.get('table') || 'Неизвестно';
-    document.getElementById('table-info').textContent = `Столик: ${table}`;
+    // Получаем данные из Telegram
+    const user = tg?.initDataUnsafe?.user;
+    const userId = user ? user.id : 0;
+    const userName = user ? user.first_name : 'Гость';
+
+    document.getElementById('user-info').textContent = `Привет, ${userName}!`;
 
     let cart = {};
 
@@ -129,16 +115,14 @@
     }
 
     function updateCartUI() {
-        let total = 0;
-        for (let key in cart) {
-            total += cart[key].price * cart[key].qty;
-        }
+        let total = 0; let count = 0;
+        for (let key in cart) { total += cart[key].price * cart[key].qty; count += cart[key].qty; }
         document.getElementById('cart-total').textContent = `${total} ₽`;
+        document.getElementById('cart-total-modal').textContent = `${total} ₽`;
+        document.getElementById('cart-count').textContent = count;
         
         let html = '';
-        for (let key in cart) {
-            html += `<div class="cart-item"><span>${key} x${cart[key].qty}</span><span>${cart[key].price * cart[key].qty} ₽</span></div>`;
-        }
+        for (let key in cart) { html += `<div class="cart-item"><span>${key} x${cart[key].qty}</span><span>${cart[key].price * cart[key].qty} ₽</span></div>`; }
         document.getElementById('cart-items').innerHTML = html || '<p style="color:#999;text-align:center;">Корзина пуста</p>';
     }
 
@@ -151,34 +135,24 @@
 
     async function submitOrder() {
         const items = [];
-        for (let key in cart) {
-            items.push({ name: key, price: cart[key].price, qty: cart[key].qty });
-        }
-
+        for (let key in cart) items.push({ name: key, price: cart[key].price, qty: cart[key].qty });
         if (items.length === 0) return alert('Корзина пуста');
 
+        toggleCart();
+        
         const res = await fetch('/api/order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ table, items })
+            body: JSON.stringify({ user_id: userId, user_name: userName, items })
         });
 
         if (res.ok) {
-            toggleCart();
-            showToast('🔥 Заказ отправлен!');
-            cart = {};
-            updateCartUI();
+            cart = {}; updateCartUI();
             if (tg) tg.HapticFeedback.notificationOccurred('success');
+            document.getElementById('status-screen').style.display = 'flex';
         } else {
-            alert('Ошибка при отправке заказа');
+            alert('Ошибка при отправке');
         }
-    }
-
-    function showToast(text) {
-        const toast = document.getElementById('toast');
-        toast.textContent = text;
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
     }
 </script>
 </body>
