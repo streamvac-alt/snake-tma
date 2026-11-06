@@ -120,8 +120,15 @@ async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<Ad
 #[derive(Deserialize)]
 struct StatusPayload { id: String, status: String }
 async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
-    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind(uuid::Uuid::parse_str(&payload.id).unwrap()).execute(&state.db).await;
+    if query.key != state.admin_key { 
+        return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); 
+    }
+    
+    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2")
+        .bind(&payload.status as &str) 
+        .bind(uuid::Uuid::parse_str(&payload.id).unwrap())
+        .execute(&state.db).await;
+        
     (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
 }
 
@@ -139,9 +146,12 @@ async fn main() {
     let supabase_url = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL");
     let supabase_key = env::var("SUPABASE_KEY").expect("Нет SUPABASE_KEY");
     
+    // Исправленная строка подключения (убрал лишнюю точку)
+    let connection_string = format!("postgresql://postgres:{}@db.{}.supabase.co:5432/postgres", supabase_key, supabase_url.replace("https://", ""));
+    
     let db = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&format!("postgresql://postgres:{}.{}@db.{}.supabase.co:5432/postgres", supabase_key, supabase_url.replace("https://", ""), supabase_url.replace("https://", "").split('.').next().unwrap()))
+        .connect(&connection_string)
         .await.expect("Ошибка подключения к БД");
 
     let state = Arc::new(AppState {
