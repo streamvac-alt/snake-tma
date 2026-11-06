@@ -16,17 +16,14 @@ use uuid::Uuid;
 struct CreateOrderPayload { user_id: i64, user_name: String, items: Vec<OrderItemPayload>, comment: Option<String> }
 #[derive(Debug, Deserialize)]
 struct OrderItemPayload { variant_id: i32, qty: i32 }
-#[derive(Debug, Serialize)]
-struct OrderResponse { ok: bool, order_number: Option<i32>, error: Option<String> }
 #[derive(Debug, Deserialize)]
 struct AdminQuery { key: String }
-#[derive(Serialize)]
-struct SimpleResponse { ok: bool, data: Option<serde_json::Value> }
+#[derive(Debug, Deserialize)]
+struct StatusPayload { id: String, status: String }
+#[derive(Debug, Deserialize)]
+struct StopPayload { variant_id: i32, is_stopped: bool }
 
 struct AppState { bot_token: String, admin_chat_id: String, admin_key: String, db: PgPool }
-
-#[derive(Serialize)]
-struct MenuResponse { categories: Vec<serde_json::Value>, products: Vec<serde_json::Value> }
 
 async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let cats: Vec<(i32, String)> = sqlx::query_as("SELECT id, name FROM categories ORDER BY sort_order ASC").fetch_all(&state.db).await.unwrap_or_default();
@@ -41,12 +38,12 @@ async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         for v in vars { variants.push(serde_json::json!({ "id": v.0, "name": v.1, "price": v.2 })); }
         products.push(serde_json::json!({ "id": p.0, "category_id": p.1, "name": p.2, "description": p.3, "image_url": p.4, "variants": variants }));
     }
-    Json(MenuResponse { categories, products })
+    (StatusCode::OK, Json(serde_json::json!({ "categories": categories, "products": products })))
 }
 
 async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<CreateOrderPayload>) -> impl IntoResponse {
     let shift: Option<i32> = sqlx::query_scalar("SELECT id FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None);
-    let shift_id = match shift { Some(id) => id, None => return (StatusCode::BAD_REQUEST, Json(OrderResponse { ok: false, order_number: None, error: Some("Смена закрыта".into()) })) };
+    let shift_id = match shift { Some(id) => id, None => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "ok": false, "error": "Смена закрыта" }))) };
 
     let _ = sqlx::query("INSERT INTO profiles (id, first_name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name").bind(payload.user_id).bind(&payload.user_name).execute(&state.db).await;
     let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(order_number), 0) + 1 FROM orders WHERE shift_id = $1").bind(shift_id).fetch_one(&state.db).await.unwrap();
@@ -72,7 +69,7 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}", order_num, payload.user_name, items_text, total, comment_display);
     send_tg(&state.bot_token, &state.admin_chat_id, &msg).await;
 
-    (StatusCode::OK, Json(OrderResponse { ok: true, order_number: Some(order_num), error: None }))
+    (StatusCode::OK, Json(serde_json::json!({ "ok": true, "order_number": order_num })))
 }
 
 async fn get_active_orders(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -84,11 +81,17 @@ async fn get_active_orders(State(state): State<Arc<AppState>>) -> impl IntoRespo
         for i in items { items_json.push(serde_json::json!({ "product_name": i.0, "variant_name": i.1, "price": i.2, "qty": i.3 })); }
         result.push(serde_json::json!({ "id": o.0, "order_number": o.1, "user_id": o.2, "status": o.3, "total_price": o.4, "comment": o.5, "items": items_json }));
     }
-    Json(result)
+    (StatusCode::OK, Json(serde_json::json!(result)))
+}
+
+async fn get_shift_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>) -> impl IntoResponse {
+    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "is_open": false }))); }
+    let current: Option<(i32, bool)> = sqlx::query_as("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None);
+    (StatusCode::OK, Json(serde_json::json!({ "is_open": current.is_some() })))
 }
 
 async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
+    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
     let current: Option<(i32, bool)> = sqlx::query_as("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None);
     if let Some(shift) = current {
         let _ = sqlx::query("UPDATE shifts SET is_open = false, closed_at = now() WHERE id = $1").bind(shift.0).execute(&state.db).await;
@@ -96,41 +99,27 @@ async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<Ad
     } else {
         let _ = sqlx::query("UPDATE shifts SET is_open = true, opened_at = now() WHERE is_open = false ORDER BY id DESC LIMIT 1").execute(&state.db).await;
     }
-    (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
+    (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
-async fn get_shift_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({"is_open": false}))); }
-    let current: Option<(i32, bool)> = sqlx::query_as("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap_or(None);
-    Json(serde_json::json!({ "is_open": current.is_some() }))
-}
-
-#[derive(Deserialize)]
-struct StatusPayload { id: String, status: String }
 async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
+    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
     let order_id = Uuid::parse_str(&payload.id).unwrap();
     let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind::<Uuid>(order_id).execute(&state.db).await;
-    (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
+    (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
 async fn delete_order(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
-    
+    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
     let order_id = Uuid::parse_str(&payload.id).unwrap();
-    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1")
-        .bind::<Uuid>(order_id)
-        .execute(&state.db).await;
-        
-    (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
+    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1").bind::<Uuid>(order_id).execute(&state.db).await;
+    (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
-#[derive(Deserialize)]
-struct StopPayload { variant_id: i32, is_stopped: bool }
 async fn toggle_stop(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StopPayload>) -> impl IntoResponse {
-    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
+    if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
     let _ = sqlx::query("UPDATE product_variants SET is_stopped = $1 WHERE id = $2").bind(payload.is_stopped).bind(payload.variant_id).execute(&state.db).await;
-    (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
+    (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
 async fn send_tg(token: &str, chat_id: &str, text: &str) {
