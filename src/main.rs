@@ -163,11 +163,8 @@ async fn send_tg(token: &str, chat_id: &str, text: &str) {
 async fn main() {
     tracing_subscriber::fmt::init();
     
-    let supabase_url = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL");
-    let supabase_key = env::var("SUPABASE_KEY").expect("Нет SUPABASE_KEY");
-    
-    let connection_string = format!("postgresql://postgres:{}@db.{}.supabase.co:5432/postgres", supabase_key, supabase_url.replace("https://", ""));
-    
+    let connection_string = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL в переменных окружения");
+
     let db = PgPoolOptions::new()
         .max_connections(5)
         .connect(&connection_string)
