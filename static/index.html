@@ -3,274 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Snake</title>
+    <title>Меню Бара</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body {
-            background: #090a0f; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden; touch-action: none;
-        }
-        .hud { display: flex; gap: 30px; margin-bottom: 15px; font-weight: bold; font-size: 18px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
-        .score { color: #00ffcc; }
-        .high { color: #ff0055; }
-        canvas { border-radius: 12px; box-shadow: 0 0 30px rgba(0, 255, 204, 0.2); background: #090a0f; }
-        #overlay {
-            position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
-            flex-direction: column; background: rgba(9, 10, 15, 0.9); backdrop-filter: blur(5px);
-            z-index: 10;
-        }
-        #overlay h1 { color: #ff0055; font-size: 32px; margin-bottom: 10px; text-shadow: 0 0 20px #ff0055; }
-        #overlay p { font-size: 18px; margin-bottom: 20px; color: #888; }
-        #overlay button {
-            padding: 15px 40px; font-size: 18px; font-weight: bold; border: none; border-radius: 30px;
-            background: #00ffcc; color: #000; cursor: pointer; box-shadow: 0 0 20px #00ffcc;
-            transition: transform 0.1s;
-        }
-        #overlay button:active { transform: scale(0.95); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, sans-serif; }
+        body { background: #f0f2f5; color: #333; padding-bottom: 80px; }
+        .header { background: #1e293b; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 20px 20px; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header p { color: #94a3b8; font-size: 14px; }
+        .tabs { display: flex; gap: 10px; padding: 0 15px; margin-bottom: 15px; overflow-x: auto; }
+        .tabs button { padding: 10px 20px; border: none; border-radius: 20px; background: #fff; font-weight: bold; color: #64748b; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .tabs button.active { background: #3b82f6; color: #fff; }
+        .container { padding: 0 15px; }
+        .category { display: none; }
+        .category.active { display: block; }
+        .item { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .item-info h3 { font-size: 16px; margin-bottom: 4px; }
+        .item-info p { font-size: 13px; color: #64748b; }
+        .item-actions { display: flex; align-items: center; gap: 10px; }
+        .price { font-weight: bold; font-size: 16px; color: #0f172a; }
+        .btn-add { width: 30px; height: 30px; border-radius: 50%; border: none; background: #3b82f6; color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-add:active { transform: scale(0.9); }
+        .cart-btn { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #3b82f6; color: #fff; padding: 15px; border-radius: 15px; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4); cursor: pointer; display: flex; justify-content: space-between; }
+        .cart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 10; }
+        .cart-modal { position: fixed; bottom: -100%; left: 0; right: 0; background: #fff; border-radius: 20px 20px 0 0; padding: 20px; z-index: 11; transition: bottom 0.3s; max-height: 80vh; overflow-y: auto; }
+        .cart-modal.open { bottom: 0; }
+        .cart-item { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .btn-submit { width: 100%; padding: 15px; background: #10b981; color: #fff; border: none; border-radius: 12px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #10b981; color: #fff; padding: 12px 24px; border-radius: 30px; font-weight: bold; display: none; z-index: 20; box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4); }
     </style>
 </head>
 <body>
-    <div class="hud">
-        <div class="score" id="score">СЧЁТ: 0</div>
-        <div class="high" id="high">РЕКОРД: 0</div>
+
+<div class="header">
+    <h1>Меню Бара</h1>
+    <p id="table-info">Столик: Загрузка...</p>
+</div>
+
+<div class="tabs">
+    <button class="active" onclick="switchTab('bar', this)">🍸 Бар</button>
+    <button onclick="switchTab('food', this)">🍔 Кухня</button>
+    <button onclick="switchTab('services', this)">🛎 Услуги</button>
+</div>
+
+<div class="container">
+    <div id="bar" class="category active">
+        <div class="item">
+            <div class="item-info"><h3>Пиво разливное</h3><p>Светлое, 0.5л</p></div>
+            <div class="item-actions"><span class="price">300 ₽</span><button class="btn-add" onclick="addToCart('Пиво', 300)">+</button></div>
+        </div>
+        <div class="item">
+            <div class="item-info"><h3>Коктейль "Куба Либре"</h3><p>Ром, кола, лайм</p></div>
+            <div class="item-actions"><span class="price">450 ₽</span><button class="btn-add" onclick="addToCart('Куба Либре', 450)">+</button></div>
+        </div>
+        <div class="item">
+            <div class="item-info"><h3>Виски Jameson</h3><p>Порция 50мл</p></div>
+            <div class="item-actions"><span class="price">600 ₽</span><button class="btn-add" onclick="addToCart('Виски', 600)">+</button></div>
+        </div>
     </div>
-    <canvas id="game"></canvas>
-    
-    <div id="overlay">
-        <h1>GAME OVER</h1>
-        <p>Твой счёт: <span id="final-score" style="color:#fff">0</span></p>
-        <button onclick="restart()">ИГРАТЬ СНОВА</button>
+
+    <div id="food" class="category">
+        <div class="item">
+            <div class="item-info"><h3>Бургер "Корабельный"</h3><p>Говядина, сыр, соус</p></div>
+            <div class="item-actions"><span class="price">550 ₽</span><button class="btn-add" onclick="addToCart('Бургер', 550)">+</button></div>
+        </div>
+        <div class="item">
+            <div class="item-info"><h3>Картофель фри</h3><p>С соусом на выбор</p></div>
+            <div class="item-actions"><span class="price">200 ₽</span><button class="btn-add" onclick="addToCart('Картофель фри', 200)">+</button></div>
+        </div>
+        <div class="item">
+            <div class="item-info"><h3>Стейк из лосося</h3><p>С овощами гриль</p></div>
+            <div class="item-actions"><span class="price">890 ₽</span><button class="btn-add" onclick="addToCart('Стейк из лосося', 890)">+</button></div>
+        </div>
     </div>
+
+    <div id="services" class="category">
+        <div class="item">
+            <div class="item-info"><h3>Вызов официанта</h3><p>Нажмите, если нужна помощь</p></div>
+            <div class="item-actions"><span class="price">0 ₽</span><button class="btn-add" onclick="addToCart('Вызов официанта', 0)">+</button></div>
+        </div>
+        <div class="item">
+            <div class="item-info"><h3>Плед</h3><p>Если стало прохладно</p></div>
+            <div class="item-actions"><span class="price">0 ₽</span><button class="btn-add" onclick="addToCart('Плед', 0)">+</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="cart-btn" onclick="toggleCart()">
+    <span>Корзина</span>
+    <span id="cart-total">0 ₽</span>
+</div>
+
+<div class="cart-overlay" id="overlay" onclick="toggleCart()"></div>
+<div class="cart-modal" id="cart-modal">
+    <h2 style="margin-bottom:15px;">Ваш заказ</h2>
+    <div id="cart-items"></div>
+    <button class="btn-submit" onclick="submitOrder()">Заказать</button>
+</div>
+
+<div class="toast" id="toast">Заказ отправлен!</div>
 
 <script>
-const tg = window.Telegram?.WebApp;
-tg?.ready();
-tg?.expand();
-if (tg) tg.setHeaderColor('#090a0f');
+    const tg = window.Telegram?.WebApp;
+    tg?.ready();
+    tg?.expand();
 
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+    const urlParams = new URLSearchParams(window.location.search);
+    const table = urlParams.get('table') || 'Неизвестно';
+    document.getElementById('table-info').textContent = `Столик: ${table}`;
 
-// Настройки поля (квадратное для мобилок)
-const CELL = 20;
-let COLS, ROWS;
+    let cart = {};
 
-function resize() {
-    const size = Math.min(window.innerWidth * 0.95, window.innerHeight * 0.7);
-    COLS = Math.floor(size / CELL);
-    ROWS = Math.floor(size / CELL);
-    canvas.width = COLS * CELL;
-    canvas.height = ROWS * CELL;
-}
-resize();
-window.addEventListener('resize', resize);
+    function switchTab(id, btn) {
+        document.querySelectorAll('.category').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
 
-let snake, dir, nextDir, food, score, highScore = 0, alive, gameLoop;
-let particles = [];
-let initData = tg?.initData || '';
+    function addToCart(name, price) {
+        if (!cart[name]) cart[name] = { price, qty: 0 };
+        cart[name].qty += 1;
+        updateCartUI();
+        if (tg) tg.HapticFeedback.impactOccurred('light');
+    }
 
-const scoreEl = document.getElementById('score');
-const highEl = document.getElementById('high');
-const overlay = document.getElementById('overlay');
-const finalScoreEl = document.getElementById('final-score');
+    function updateCartUI() {
+        let total = 0;
+        for (let key in cart) {
+            total += cart[key].price * cart[key].qty;
+        }
+        document.getElementById('cart-total').textContent = `${total} ₽`;
+        
+        let html = '';
+        for (let key in cart) {
+            html += `<div class="cart-item"><span>${key} x${cart[key].qty}</span><span>${cart[key].price * cart[key].qty} ₽</span></div>`;
+        }
+        document.getElementById('cart-items').innerHTML = html || '<p style="color:#999;text-align:center;">Корзина пуста</p>';
+    }
 
-// --- Авторизация ---
-async function authenticate() {
-    if (!initData) return;
-    try {
-        const res = await fetch('/api/auth', {
+    function toggleCart() {
+        const modal = document.getElementById('cart-modal');
+        const overlay = document.getElementById('overlay');
+        modal.classList.toggle('open');
+        overlay.style.display = modal.classList.contains('open') ? 'block' : 'none';
+    }
+
+    async function submitOrder() {
+        const items = [];
+        for (let key in cart) {
+            items.push({ name: key, price: cart[key].price, qty: cart[key].qty });
+        }
+
+        if (items.length === 0) return alert('Корзина пуста');
+
+        const res = await fetch('/api/order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ init_data: initData })
+            body: JSON.stringify({ table, items })
         });
-        const data = await res.json();
-        if (data.ok) {
-            highScore = data.high_score;
-            highEl.textContent = 'РЕКОРД: ' + highScore;
-        }
-    } catch (e) {}
-}
 
-// --- Логика игры ---
-function reset() {
-    snake = [{x: Math.floor(COLS/2), y: Math.floor(ROWS/2)}];
-    dir = {x: 1, y: 0}; nextDir = {x: 1, y: 0};
-    score = 0; alive = true;
-    particles = [];
-    scoreEl.textContent = 'СЧЁТ: 0';
-    overlay.style.display = 'none';
-    placeFood();
-}
-
-function placeFood() {
-    while (true) {
-        const f = {x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS)};
-        if (!snake.some(s => s.x === f.x && s.y === f.y)) { food = f; return; }
-    }
-}
-
-function spawnParticles(x, y, color) {
-    for (let i = 0; i < 15; i++) {
-        particles.push({
-            x: x * CELL + CELL/2, y: y * CELL + CELL/2,
-            vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8,
-            life: 1, color: color
-        });
-    }
-}
-
-function update() {
-    if (!alive) return;
-    
-    dir = nextDir;
-    const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
-
-    // Столкновение со стенами или собой
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS || snake.some(s => s.x === head.x && s.y === head.y)) {
-        gameOver(); return;
-    }
-
-    snake.unshift(head);
-    
-    if (head.x === food.x && head.y === food.y) {
-        score += 10; 
-        scoreEl.textContent = 'СЧЁТ: ' + score;
-        if (tg) tg.HapticFeedback.impactOccurred('light');
-        spawnParticles(food.x, food.y, '#ff0055');
-        placeFood();
-    } else {
-        snake.pop();
-    }
-
-    // Обновление частиц
-    particles.forEach(p => {
-        p.x += p.vx; p.y += p.vy; p.life -= 0.05; p.vx *= 0.95; p.vy *= 0.95;
-    });
-    particles = particles.filter(p => p.life > 0);
-}
-
-function draw() {
-    // Очистка (с полупрозрачностью для шлейфа)
-    ctx.fillStyle = '#090a0f';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Сетка (неоновая)
-    ctx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= COLS; i++) {
-        ctx.beginPath(); ctx.moveTo(i * CELL, 0); ctx.lineTo(i * CELL, canvas.height); ctx.stroke();
-    }
-    for (let i = 0; i <= ROWS; i++) {
-        ctx.beginPath(); ctx.moveTo(0, i * CELL); ctx.lineTo(canvas.width, i * CELL); ctx.stroke();
-    }
-
-    // Еда (пульсирующая)
-    const pulse = Math.sin(Date.now() / 150) * 2;
-    ctx.shadowBlur = 20; ctx.shadowColor = '#ff0055'; ctx.fillStyle = '#ff0055';
-    ctx.beginPath(); 
-    ctx.arc(food.x * CELL + CELL/2, food.y * CELL + CELL/2, (CELL/2 - 2) + pulse, 0, Math.PI * 2); 
-    ctx.fill();
-
-    // Частицы
-    particles.forEach(p => {
-        ctx.shadowBlur = 10; ctx.shadowColor = p.color;
-        ctx.fillStyle = `rgba(255, 0, 85, ${p.life})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
-    });
-
-    // Змейка
-    ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
-    snake.forEach((s, i) => {
-        // Плавное затухание цвета к хвосту
-        const opacity = Math.max(0.3, 1 - (i / snake.length));
-        ctx.fillStyle = i === 0 ? '#fff' : `rgba(0, 255, 204, ${opacity})`;
-        
-        // Скругленные прямоугольники
-        ctx.beginPath();
-        ctx.roundRect(s.x * CELL + 2, s.y * CELL + 2, CELL - 4, CELL - 4, 6);
-        ctx.fill();
-    });
-    
-    ctx.shadowBlur = 0; // Сброс тени
-}
-
-function gameOver() {
-    alive = false;
-    if (tg) tg.HapticFeedback.notificationOccurred('error');
-    finalScoreEl.textContent = score;
-    overlay.style.display = 'flex';
-    submitScore();
-}
-
-async function submitScore() {
-    if (score > highScore) {
-        highScore = score;
-        highEl.textContent = 'РЕКОРД: ' + highScore;
-        if (initData) {
-            try {
-                await fetch('/api/score', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ init_data: initData, score })
-                });
-            } catch (e) {}
+        if (res.ok) {
+            toggleCart();
+            showToast('🔥 Заказ отправлен!');
+            cart = {};
+            updateCartUI();
+            if (tg) tg.HapticFeedback.notificationOccurred('success');
+        } else {
+            alert('Ошибка при отправке заказа');
         }
     }
-}
 
-// Главный цикл
-let lastTime = 0;
-const speed = 70; // миллисекунд на шаг
-
-function loop(time) {
-    if (alive) {
-        if (time - lastTime > speed) {
-            update();
-            lastTime = time;
-        }
-        draw();
+    function showToast(text) {
+        const toast = document.getElementById('toast');
+        toast.textContent = text;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
     }
-    requestAnimationFrame(loop);
-}
-
-function restart() {
-    reset();
-    if (tg) tg.HapticFeedback.impactOccurred('medium');
-}
-
-// Управление
-function setDir(x, y) {
-    if (dir.x === -x && dir.y === -y) return; // Запрет разворота на 180
-    nextDir = {x, y};
-}
-
-document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') setDir(0, -1);
-    if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDir(0, 1);
-    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') setDir(-1, 0);
-    if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') setDir(1, 0);
-});
-
-let touchStart = null;
-canvas.addEventListener('touchstart', e => { touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY}; }, {passive: true});
-canvas.addEventListener('touchend', e => {
-    if (!touchStart) return;
-    const dx = e.changedTouches[0].clientX - touchStart.x;
-    const dy = e.changedTouches[0].clientY - touchStart.y;
-    if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 20) setDir(1, 0); else if (dx < -20) setDir(-1, 0);
-    } else {
-        if (dy > 20) setDir(0, 1); else if (dy < -20) setDir(0, -1);
-    }
-    touchStart = null;
-}, {passive: true});
-
-// Старт
-authenticate();
-reset();
-requestAnimationFrame(loop);
 </script>
 </body>
 </html>
