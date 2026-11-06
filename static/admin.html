@@ -2,89 +2,135 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Админ-панель</title>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; }
-        h1 { margin-bottom: 20px; font-size: 22px; }
-        .order-card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #3b82f6; }
+        :root { --bg: #121212; --card: #1e1e1e; --primary: #ff5a00; --text: #ffffff; --subtext: #a0a0a0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 20px; padding-bottom: 50px; }
+        
+        /* Экран логина */
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; }
+        .login-box { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .login-box h2 { margin-bottom: 20px; font-size: 24px; }
+        .login-box input { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #333; background: #111; color: #fff; font-size: 16px; margin-bottom: 15px; outline: none; text-align: center; }
+        .login-box input:focus { border-color: var(--primary); }
+        .login-box button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
+        /* Основной экран */
+        #app-screen { display: none; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .header h1 { font-size: 22px; font-weight: 800; }
+        .btn-logout { background: #333; color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        .order-card { background: var(--card); padding: 20px; border-radius: 16px; margin-bottom: 15px; border-left: 6px solid var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .order-card.accepted { border-left-color: #f59e0b; }
-        .order-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; font-size: 16px; }
-        .order-user { color: #3b82f6; }
-        .order-items { font-size: 14px; color: #cbd5e1; margin-bottom: 15px; }
-        .order-total { font-weight: bold; color: #10b981; margin-bottom: 15px; }
-        .btn-group { display: flex; gap: 10px; }
-        button { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; }
-        .btn-accept { background: #f59e0b; color: #000; }
+        .order-card.done { border-left-color: #10b981; opacity: 0.5; }
+        
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 18px; font-weight: bold; }
+        .order-user { color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .status-badge { font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
+        .status-new { background: rgba(255, 90, 0, 0.2); color: var(--primary); }
+        .status-accepted { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        
+        .order-items { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .order-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 15px; }
+        .order-item:last-child { margin-bottom: 0; }
+        .order-total { font-size: 20px; font-weight: 900; text-align: right; margin-bottom: 20px; color: #fff; }
+        
+        .actions { display: flex; gap: 10px; }
+        .actions button, .actions a { flex: 1; padding: 14px; border-radius: 12px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; text-align: center; text-decoration: none; display: flex; justify-content: center; align-items: center; }
+        .btn-accept { background: var(--primary); color: #fff; }
         .btn-done { background: #10b981; color: #fff; }
-        .btn-contact { background: #3b82f6; color: #fff; text-align: center; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block; width: 100%; margin-bottom: 10px; }
-        .btn-refresh { background: #3b82f6; color: #fff; margin-bottom: 20px; width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; }
-        .error-msg { color: #ef4444; text-align: center; font-weight: bold; margin-top: 50px; font-size: 18px; }
+        .btn-contact { background: #3b82f6; color: #fff; }
+        .empty-state { text-align: center; color: var(--subtext); margin-top: 50px; font-size: 16px; }
     </style>
 </head>
 <body>
-    <h1>🔥 Активные заказы</h1>
-    
-    <div id="app-content" style="display:none;">
-        <button class="btn-refresh" onclick="loadOrders()">Обновить</button>
-        <div id="orders-container"></div>
+
+<!-- Экран ввода пароля -->
+<div id="login-screen">
+    <div class="login-box">
+        <h2>🔒 Вход для персонала</h2>
+        <input type="password" id="password-input" placeholder="Введите пароль" onkeypress="if(event.key === 'Enter') login()">
+        <button onclick="login()">Войти</button>
     </div>
-    
-    <div id="access-denied" class="error-msg" style="display:none;">
-        ⛔ Доступ запрещен.<br>Неверный или отсутствующий ключ.
+</div>
+
+<!-- Основной экран -->
+<div id="app-screen">
+    <div class="header">
+        <h1>🔥 Заказы</h1>
+        <button class="btn-logout" onclick="logout()">Выйти</button>
     </div>
+    <div id="orders-container"></div>
+</div>
 
 <script>
-    // Берем ключ из URL (например, ?key=boss123)
-    const urlParams = new URLSearchParams(window.location.search);
-    const adminKey = urlParams.get('key');
+    let adminKey = localStorage.getItem('adminKey') || null;
 
-    if (!adminKey) {
-        document.getElementById('access-denied').style.display = 'block';
-    } else {
-        document.getElementById('app-content').style.display = 'block';
-        loadOrders(); // Первая загрузка
-        setInterval(loadOrders, 5000); // Автообновление
+    // Если ключ уже есть в памяти, сразу показываем заказы
+    if (adminKey) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        loadOrders();
+        setInterval(loadOrders, 5000);
+    }
+
+    function login() {
+        const pwd = document.getElementById('password-input').value;
+        if (!pwd) return;
+        
+        // Проверяем пароль запросом к серверу
+        fetch(`/api/orders?key=${pwd}`).then(res => {
+            if (res.status === 200) {
+                adminKey = pwd;
+                localStorage.setItem('adminKey', pwd);
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-screen').style.display = 'block';
+                loadOrders();
+                setInterval(loadOrders, 5000);
+            } else {
+                alert('Неверный пароль!');
+            }
+        });
+    }
+
+    function logout() {
+        localStorage.removeItem('adminKey');
+        location.reload();
     }
 
     async function loadOrders() {
-        // Передаем ключ в запросе
+        if (!adminKey) return;
         const res = await fetch(`/api/orders?key=${adminKey}`);
-        
-        if (res.status === 401) {
-            document.getElementById('app-content').style.display = 'none';
-            document.getElementById('access-denied').style.display = 'block';
-            return;
-        }
+        if (res.status === 401) { logout(); return; }
 
         const orders = await res.json();
         const activeOrders = orders.filter(o => o.status !== 'done').sort((a,b) => b.id.localeCompare(a.id));
         const container = document.getElementById('orders-container');
         
         if (activeOrders.length === 0) {
-            container.innerHTML = '<p style="color:#64748b; text-align:center;">Нет активных заказов</p>';
+            container.innerHTML = '<div class="empty-state">Нет активных заказов</div>';
             return;
         }
 
         container.innerHTML = activeOrders.map(order => {
-            const itemsHtml = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
-            const statusClass = order.status === 'accepted' ? 'accepted' : '';
-            const contactLink = `tg://user?id=${order.user_id}`;
+            const itemsHtml = order.items.map(i => `<div class="order-item"><span>${i.name} x${i.qty}</span><span>${i.price * i.qty} ₽</span></div>`).join('');
+            const isAccepted = order.status === 'accepted';
             
             return `
-            <div class="order-card ${statusClass}">
+            <div class="order-card ${isAccepted ? 'accepted' : ''}">
                 <div class="order-header">
                     <span class="order-user">👤 ${order.user_name}</span>
-                    <span style="color:${order.status === 'accepted' ? '#f59e0b' : '#3b82f6'}">${order.status === 'accepted' ? 'В работе' : 'Новый'}</span>
+                    <span class="status-badge ${isAccepted ? 'status-accepted' : 'status-new'}">${isAccepted ? 'В работе' : 'Новый'}</span>
                 </div>
                 <div class="order-items">${itemsHtml}</div>
-                <div class="order-total">Итого: ${order.total} ₽</div>
-                
-                <a href="${contactLink}" target="_blank" class="btn-contact">💬 Написать гостю</a>
-                
-                <div class="btn-group">
-                    ${order.status === 'new' ? `<button class="btn-accept" onclick="updateStatus('${order.id}', 'accepted')">Принять</button>` : ''}
-                    <button class="btn-done" onclick="updateStatus('${order.id}', 'done')">Выполнен</button>
+                <div class="order-total">${order.total} ₽</div>
+                <div class="actions">
+                    ${!isAccepted ? `<button class="btn-accept" onclick="updateStatus('${order.id}', 'accepted')">Принять</button>` : ''}
+                    <a href="tg://user?id=${order.user_id}" class="btn-contact">💬 Чат</a>
+                    <button class="btn-done" onclick="updateStatus('${order.id}', 'done')">Готово</button>
                 </div>
             </div>
             `;
