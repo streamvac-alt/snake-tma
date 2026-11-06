@@ -19,18 +19,45 @@
         .btn-done { background: #10b981; color: #fff; }
         .btn-contact { background: #3b82f6; color: #fff; text-align: center; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block; width: 100%; margin-bottom: 10px; }
         .btn-refresh { background: #3b82f6; color: #fff; margin-bottom: 20px; width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; }
+        .error-msg { color: #ef4444; text-align: center; font-weight: bold; margin-top: 50px; font-size: 18px; }
     </style>
 </head>
 <body>
     <h1>🔥 Активные заказы</h1>
-    <button class="btn-refresh" onclick="loadOrders()">Обновить</button>
-    <div id="orders-container"></div>
+    
+    <div id="app-content" style="display:none;">
+        <button class="btn-refresh" onclick="loadOrders()">Обновить</button>
+        <div id="orders-container"></div>
+    </div>
+    
+    <div id="access-denied" class="error-msg" style="display:none;">
+        ⛔ Доступ запрещен.<br>Неверный или отсутствующий ключ.
+    </div>
 
 <script>
+    // Берем ключ из URL (например, ?key=boss123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminKey = urlParams.get('key');
+
+    if (!adminKey) {
+        document.getElementById('access-denied').style.display = 'block';
+    } else {
+        document.getElementById('app-content').style.display = 'block';
+        loadOrders(); // Первая загрузка
+        setInterval(loadOrders, 5000); // Автообновление
+    }
+
     async function loadOrders() {
-        const res = await fetch('/api/orders');
-        const orders = await res.json();
+        // Передаем ключ в запросе
+        const res = await fetch(`/api/orders?key=${adminKey}`);
         
+        if (res.status === 401) {
+            document.getElementById('app-content').style.display = 'none';
+            document.getElementById('access-denied').style.display = 'block';
+            return;
+        }
+
+        const orders = await res.json();
         const activeOrders = orders.filter(o => o.status !== 'done').sort((a,b) => b.id.localeCompare(a.id));
         const container = document.getElementById('orders-container');
         
@@ -42,8 +69,6 @@
         container.innerHTML = activeOrders.map(order => {
             const itemsHtml = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
             const statusClass = order.status === 'accepted' ? 'accepted' : '';
-            
-            // Кнопка связи с гостем (ссылка на его профиль)
             const contactLink = `tg://user?id=${order.user_id}`;
             
             return `
@@ -67,16 +92,13 @@
     }
 
     async function updateStatus(id, status) {
-        await fetch('/api/order/status', {
+        await fetch(`/api/order/status?key=${adminKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, status })
         });
         loadOrders();
     }
-
-    setInterval(loadOrders, 5000);
-    loadOrders();
 </script>
 </body>
 </html>
