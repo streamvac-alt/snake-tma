@@ -64,7 +64,7 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     let comment_text = payload.comment.unwrap_or_default();
     
     let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)")
-        .bind(order_id)
+        .bind::<Uuid>(order_id)
         .bind(order_num)
         .bind(payload.user_id)
         .bind(shift_id)
@@ -83,7 +83,7 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
             items_text.push_str(&format!("▪️ {} ({}) x{} — {} GEL\n", v.0, v.1, item.qty, v.2 * item.qty));
             
             let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)")
-                .bind(order_id)
+                .bind::<Uuid>(order_id)
                 .bind(item.variant_id)
                 .bind(&v.0)
                 .bind(&v.1)
@@ -95,7 +95,7 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
 
     let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2")
         .bind(total)
-        .bind(order_id)
+        .bind::<Uuid>(order_id)
         .execute(&state.db).await;
 
     let comment_display = if comment_text.is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", comment_text) };
@@ -142,9 +142,11 @@ async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<A
         return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); 
     }
     
+    let order_id = Uuid::parse_str(&payload.id).unwrap();
+    
     let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2")
         .bind(&payload.status) 
-        .bind(Uuid::parse_str(&payload.id).unwrap())
+        .bind::<Uuid>(order_id) 
         .execute(&state.db).await;
         
     (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
