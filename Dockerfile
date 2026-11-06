@@ -1,5 +1,5 @@
 # --- Этап сборки ---
-FROM rust:1.88-slim AS builder
+FROM rust:1.90-slim AS builder
 WORKDIR /usr/src/app
 
 # Устанавливаем pkg-config и OpenSSL (нужны для reqwest)
