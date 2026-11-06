@@ -42,6 +42,45 @@ struct AppState {
     db: PgPool,
 }
 
+#[derive(Serialize)]
+struct MenuResponse {
+    categories: Vec<serde_json::Value>,
+    products: Vec<serde_json::Value>,
+}
+
+async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let cats: Vec<(i32, String)> = sqlx::query_as("SELECT id, name FROM categories ORDER BY sort_order ASC")
+        .fetch_all(&state.db).await.unwrap_or_default();
+    
+    let mut categories = Vec::new();
+    for c in cats {
+        categories.push(serde_json::json!({ "id": c.0, "name": c.1 }));
+    }
+
+    let prods: Vec<(i32, i32, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT id, category_id, name, description, image_url FROM products WHERE is_archived = false"
+    ).fetch_all(&state.db).await.unwrap_or_default();
+
+    let mut products = Vec::new();
+    for p in prods {
+        let vars: Vec<(i32, String, i32)> = sqlx::query_as(
+            "SELECT id, name, price FROM product_variants WHERE product_id = $1 AND is_stopped = false"
+        ).bind(p.0).fetch_all(&state.db).await.unwrap_or_default();
+
+        let mut variants = Vec::new();
+        for v in vars {
+            variants.push(serde_json::json!({ "id": v.0, "name": v.1, "price": v.2 }));
+        }
+
+        products.push(serde_json::json!({
+            "id": p.0, "category_id": p.1, "name": p.2, "description": p.3, "image_url": p.4,
+            "variants": variants
+        }));
+    }
+
+    Json(MenuResponse { categories, products })
+}
+
 async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<CreateOrderPayload>) -> impl IntoResponse {
     let shift: Option<i32> = sqlx::query_scalar("SELECT id FROM shifts WHERE is_open = true LIMIT 1")
         .fetch_optional(&state.db).await.unwrap_or(None);
@@ -165,10 +204,16 @@ async fn main() {
     
     let connection_string = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL в переменных окружения");
 
-    let db = PgPoolOptions::new()
+    let db = match PgPoolOptions::new()
         .max_connections(5)
         .connect(&connection_string)
-        .await.expect("Ошибка подключения к БД");
+        .await {
+            Ok(pool) => pool,
+            Err(e) => {
+                tracing::error!("ОШИБКА ПОДКЛЮЧЕНИЯ К БАЗЕ: {}", e);
+                std::process::exit(1);
+            }
+        };
 
     let state = Arc::new(AppState {
         bot_token: env::var("BOT_TOKEN").unwrap_or_default(),
@@ -178,6 +223,7 @@ async fn main() {
     });
 
     let app = Router::new()
+        .route("/api/menu", get(get_menu))
         .route("/api/order", post(create_order))
         .route("/api/orders", get(get_active_orders))
         .route("/api/shift", post(toggle_shift))
