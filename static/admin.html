@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <style>
+        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; }
+        h1 { margin-bottom: 20px; font-size: 22px; }
+        .order-card { background: #1e293b; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #3b82f6; }
+        .order-card.accepted { border-left-color: #f59e0b; }
+        .order-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; font-size: 16px; }
+        .order-user { color: #3b82f6; }
+        .order-items { font-size: 14px; color: #cbd5e1; margin-bottom: 15px; }
+        .order-total { font-weight: bold; color: #10b981; margin-bottom: 15px; }
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; }
+        .btn-accept { background: #f59e0b; color: #000; }
+        .btn-done { background: #10b981; color: #fff; }
+        .btn-contact { background: #3b82f6; color: #fff; text-align: center; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block; width: 100%; margin-bottom: 10px; }
+        .btn-refresh { background: #3b82f6; color: #fff; margin-bottom: 20px; width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>🔥 Активные заказы</h1>
+    <button class="btn-refresh" onclick="loadOrders()">Обновить</button>
+    <div id="orders-container"></div>
+
+<script>
+    async function loadOrders() {
+        const res = await fetch('/api/orders');
+        const orders = await res.json();
+        
+        const activeOrders = orders.filter(o => o.status !== 'done').sort((a,b) => b.id.localeCompare(a.id));
+        const container = document.getElementById('orders-container');
+        
+        if (activeOrders.length === 0) {
+            container.innerHTML = '<p style="color:#64748b; text-align:center;">Нет активных заказов</p>';
+            return;
+        }
+
+        container.innerHTML = activeOrders.map(order => {
+            const itemsHtml = order.items.map(i => `${i.name} x${i.qty}`).join(', ');
+            const statusClass = order.status === 'accepted' ? 'accepted' : '';
+            
+            // Кнопка связи с гостем (ссылка на его профиль)
+            const contactLink = `tg://user?id=${order.user_id}`;
+            
+            return `
+            <div class="order-card ${statusClass}">
+                <div class="order-header">
+                    <span class="order-user">👤 ${order.user_name}</span>
+                    <span style="color:${order.status === 'accepted' ? '#f59e0b' : '#3b82f6'}">${order.status === 'accepted' ? 'В работе' : 'Новый'}</span>
+                </div>
+                <div class="order-items">${itemsHtml}</div>
+                <div class="order-total">Итого: ${order.total} ₽</div>
+                
+                <a href="${contactLink}" target="_blank" class="btn-contact">💬 Написать гостю</a>
+                
+                <div class="btn-group">
+                    ${order.status === 'new' ? `<button class="btn-accept" onclick="updateStatus('${order.id}', 'accepted')">Принять</button>` : ''}
+                    <button class="btn-done" onclick="updateStatus('${order.id}', 'done')">Выполнен</button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    async function updateStatus(id, status) {
+        await fetch('/api/order/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status })
+        });
+        loadOrders();
+    }
+
+    setInterval(loadOrders, 5000);
+    loadOrders();
+</script>
+</body>
+</html>
