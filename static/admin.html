@@ -9,7 +9,6 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body { background: var(--bg); color: var(--text); padding: 20px; padding-bottom: 50px; }
         
-        /* Экран логина */
         #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; }
         .login-box { background: var(--card); padding: 30px; border-radius: 20px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .login-box h2 { margin-bottom: 20px; font-size: 24px; }
@@ -17,7 +16,6 @@
         .login-box input:focus { border-color: var(--primary); }
         .login-box button { width: 100%; padding: 15px; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; }
         
-        /* Основной экран */
         #app-screen { display: none; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header h1 { font-size: 22px; font-weight: 800; }
@@ -48,7 +46,6 @@
 </head>
 <body>
 
-<!-- Экран ввода пароля -->
 <div id="login-screen">
     <div class="login-box">
         <h2>🔒 Вход для персонала</h2>
@@ -57,7 +54,6 @@
     </div>
 </div>
 
-<!-- Основной экран -->
 <div id="app-screen">
     <div class="header">
         <h1>🔥 Заказы</h1>
@@ -68,8 +64,8 @@
 
 <script>
     let adminKey = localStorage.getItem('adminKey') || null;
+    let lastOrderCount = 0;
 
-    // Если ключ уже есть в памяти, сразу показываем заказы
     if (adminKey) {
         document.getElementById('login-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
@@ -81,7 +77,6 @@
         const pwd = document.getElementById('password-input').value;
         if (!pwd) return;
         
-        // Проверяем пароль запросом к серверу
         fetch(`/api/orders?key=${pwd}`).then(res => {
             if (res.status === 200) {
                 adminKey = pwd;
@@ -110,6 +105,13 @@
         const activeOrders = orders.filter(o => o.status !== 'done').sort((a,b) => b.id.localeCompare(a.id));
         const container = document.getElementById('orders-container');
         
+        // Звук при новом заказе
+        if (activeOrders.length > lastOrderCount && lastOrderCount !== 0) {
+            const audio = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+            audio.play().catch(e => console.log('Нет разрешения на звук'));
+        }
+        lastOrderCount = activeOrders.length;
+
         if (activeOrders.length === 0) {
             container.innerHTML = '<div class="empty-state">Нет активных заказов</div>';
             return;
@@ -130,7 +132,7 @@
                 <div class="actions">
                     ${!isAccepted ? `<button class="btn-accept" onclick="updateStatus('${order.id}', 'accepted')">Принять</button>` : ''}
                     <a href="tg://user?id=${order.user_id}" class="btn-contact">💬 Чат</a>
-                    <button class="btn-done" onclick="updateStatus('${order.id}', 'done')">Готово</button>
+                    <button class="btn-done" onclick="updateStatus('${order.id}', 'done')">Завершить</button>
                 </div>
             </div>
             `;
