@@ -12,7 +12,7 @@ RUN touch src/main.rs
 RUN cargo build --release
 
 # Финальный этап (маленький образ)
-FROM debian:bookworm-slim
+FROM alpine:3.20
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/target/release/snake-tma .
