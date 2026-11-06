@@ -55,27 +55,30 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     };
 
     let _ = sqlx::query("INSERT INTO profiles (id, first_name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name")
-        .bind(payload.user_id).bind(&payload.user_name).execute(&state.db).await;
+        .bind::<i64>(payload.user_id)
+        .bind::<String>(payload.user_name.clone())
+        .execute(&state.db).await;
 
     let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(order_number), 0) + 1 FROM orders WHERE shift_id = $1")
-        .bind(shift).fetch_one(&state.db).await.unwrap();
+        .bind::<i32>(shift).fetch_one(&state.db).await.unwrap();
     let order_num = row.0;
 
     let order_id = Uuid::new_v4();
+    let comment_text = payload.comment.clone().unwrap_or_default();
     
     let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)")
         .bind::<Uuid>(order_id)
         .bind::<i32>(order_num)
         .bind::<i64>(payload.user_id)
         .bind::<i32>(shift)
-        .bind(&payload.comment)
+        .bind::<String>(comment_text.clone())
         .execute(&state.db).await;
 
     let mut total = 0;
     let mut items_text = String::new();
     for item in payload.items {
         let var: Option<(String, String, i32)> = sqlx::query_as("SELECT p.name, v.name, v.price FROM product_variants v JOIN products p ON v.product_id = p.id WHERE v.id = $1")
-            .bind(item.variant_id).fetch_optional(&state.db).await.unwrap();
+            .bind::<i32>(item.variant_id).fetch_optional(&state.db).await.unwrap();
         
         if let Some(v) = var {
             total += v.2 * item.qty;
@@ -84,8 +87,8 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
             let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)")
                 .bind::<Uuid>(order_id)
                 .bind::<i32>(item.variant_id)
-                .bind(&v.0)
-                .bind(&v.1)
+                .bind::<String>(v.0)
+                .bind::<String>(v.1)
                 .bind::<i32>(v.2)
                 .bind::<i32>(item.qty)
                 .execute(&state.db).await;
@@ -97,8 +100,9 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
         .bind::<Uuid>(order_id)
         .execute(&state.db).await;
 
+    let comment_display = if comment_text.is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", comment_text) };
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}",
-        order_num, payload.user_name, items_text, total, payload.comment.map(|c| format!("📝 **Комментарий:** {}", c)).unwrap_or_default()
+        order_num, payload.user_name, items_text, total, comment_display
     );
     send_tg(&state.bot_token, &state.admin_chat_id, &msg).await;
 
