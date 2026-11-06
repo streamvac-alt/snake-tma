@@ -17,19 +17,35 @@ use tower_http::services::ServeDir;
 type HmacSha256 = Hmac<Sha256>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-struct User { id: i64, first_name: String }
+struct User {
+    id: i64,
+    first_name: String,
+}
 
 #[derive(Debug, Deserialize)]
-struct InitDataPayload { init_data: String }
+struct InitDataPayload {
+    init_data: String,
+}
 
 #[derive(Debug, Serialize)]
-struct AuthResponse { ok: bool, user: Option<User>, high_score: u32, error: Option<String> }
+struct AuthResponse {
+    ok: bool,
+    user: Option<User>,
+    high_score: u32,
+    error: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
-struct ScorePayload { init_data: String, score: u32 }
+struct ScorePayload {
+    init_data: String,
+    score: u32,
+}
 
 #[derive(Debug, Serialize)]
-struct ScoreResponse { ok: bool, high_score: u32 }
+struct ScoreResponse {
+    ok: bool,
+    high_score: u32,
+}
 
 #[derive(Clone)]
 struct AppState {
@@ -48,13 +64,20 @@ fn validate_init_data(init_data: &str, bot_token: &str) -> Result<User, String> 
         let key_dec = urlencoding::decode(key).map_err(|e| e.to_string())?.into_owned();
         let val_dec = urlencoding::decode(value).map_err(|e| e.to_string())?.into_owned();
 
-        if key_dec == "hash" { hash = Some(val_dec); } 
-        else { pairs.push((key_dec, val_dec)); }
+        if key_dec == "hash" {
+            hash = Some(val_dec);
+        } else {
+            pairs.push((key_dec, val_dec));
+        }
     }
 
     let hash = hash.ok_or("initData не содержит hash")?;
     pairs.sort_by(|a, b| a.0.cmp(&b.0));
-    let data_check_string = pairs.iter().map(|(k, v)| format!("{}={}", k, v)).collect::<Vec<_>>().join("\n");
+    let data_check_string = pairs
+        .iter()
+        .map(|(k, v)| format!("{}={}", k, v))
+        .collect::<Vec<_>>()
+        .join("\n");
 
     let mut secret_mac = HmacSha256::new_from_slice(b"WebAppData").map_err(|e| e.to_string())?;
     secret_mac.update(bot_token.as_bytes());
@@ -64,40 +87,89 @@ fn validate_init_data(init_data: &str, bot_token: &str) -> Result<User, String> 
     mac.update(data_check_string.as_bytes());
     let expected = hex::encode(mac.finalize().into_bytes());
 
-    if expected != hash { return Err("Неверная подпись initData".into()); }
+    if expected != hash {
+        return Err("Неверная подпись initData".into());
+    }
 
-    let user_json = pairs.iter().find(|(k, _)| k == "user").map(|(_, v)| v.clone()).ok_or("Нет поля user")?;
+    let user_json = pairs
+        .iter()
+        .find(|(k, _)| k == "user")
+        .map(|(_, v)| v.clone())
+        .ok_or("Нет поля user")?;
+
     let user: User = serde_json::from_str(&user_json).map_err(|e| e.to_string())?;
     Ok(user)
 }
 
-async fn auth(State(state): State<AppState>, Json(payload): Json<InitDataPayload>) -> impl IntoResponse {
+async fn auth(
+    State(state): State<AppState>,
+    Json(payload): Json<InitDataPayload>,
+) -> impl IntoResponse {
     match validate_init_data(&payload.init_data, &state.bot_token) {
         Ok(user) => {
-            let high_score = state.scores.lock().unwrap().get(&user.id).copied().unwrap_or(0);
-            Json(AuthResponse { ok: true, user: Some(user), high_score, error: None })
+            let high_score = state
+                .scores
+                .lock()
+                .unwrap()
+                .get(&user.id)
+                .copied()
+                .unwrap_or(0);
+            
+            let response = Json(AuthResponse {
+                ok: true,
+                user: Some(user),
+                high_score,
+                error: None,
+            });
+            (StatusCode::OK, response)
         }
-        Err(e) => (StatusCode::UNAUTHORIZED, Json(AuthResponse { ok: false, user: None, high_score: 0, error: Some(e) }))
+        Err(e) => {
+            let response = Json(AuthResponse {
+                ok: false,
+                user: None,
+                high_score: 0,
+                error: Some(e),
+            });
+            (StatusCode::UNAUTHORIZED, response)
+        }
     }
 }
 
-async fn submit_score(State(state): State<AppState>, Json(payload): Json<ScorePayload>) -> impl IntoResponse {
+async fn submit_score(
+    State(state): State<AppState>,
+    Json(payload): Json<ScorePayload>,
+) -> impl IntoResponse {
     match validate_init_data(&payload.init_data, &state.bot_token) {
         Ok(user) => {
             let mut scores = state.scores.lock().unwrap();
             let entry = scores.entry(user.id).or_insert(0);
-            if payload.score > *entry { *entry = payload.score; }
-            Json(ScoreResponse { ok: true, high_score: *entry })
+            if payload.score > *entry {
+                *entry = payload.score;
+            }
+            
+            let response = Json(ScoreResponse {
+                ok: true,
+                high_score: *entry,
+            });
+            (StatusCode::OK, response)
         }
-        Err(_) => (StatusCode::UNAUTHORIZED, Json(ScoreResponse { ok: false, high_score: 0 }))
+        Err(_) => {
+            let response = Json(ScoreResponse {
+                ok: false,
+                high_score: 0,
+            });
+            (StatusCode::UNAUTHORIZED, response)
+        }
     }
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    let bot_token = std::env::var("BOT_TOKEN").expect("Укажите BOT_TOKEN в переменных окружения");
-    
+
+    let bot_token = std::env::var("BOT_TOKEN")
+        .expect("Укажите BOT_TOKEN в переменных окружения");
+
     let state = AppState {
         bot_token,
         scores: Arc::new(Mutex::new(HashMap::new())),
@@ -110,7 +182,9 @@ async fn main() {
         .with_state(state);
 
     let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+        .await
+        .unwrap();
     
     tracing::info!("Сервер запущен на порту {}", port);
     axum::serve(listener, app).await.unwrap();
