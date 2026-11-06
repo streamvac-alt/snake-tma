@@ -1,5 +1,5 @@
 # --- Этап сборки ---
-FROM rust:1.85-slim AS builder
+FROM rust:1.88-slim AS builder
 WORKDIR /usr/src/app
 
 # Копируем ВСЕ файлы из папки проекта в контейнер
