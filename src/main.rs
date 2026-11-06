@@ -116,8 +116,12 @@ async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<A
 
 async fn delete_order(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
+    
     let order_id = Uuid::parse_str(&payload.id).unwrap();
-    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1").bind::<Uuid>(order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1")
+        .bind::<Uuid>(order_id)
+        .execute(&state.db).await;
+        
     (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
 }
 
