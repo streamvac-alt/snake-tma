@@ -31,7 +31,6 @@ struct OrderResponse { ok: bool, order_number: Option<i32>, error: Option<String
 #[derive(Debug, Deserialize)]
 struct AdminQuery { key: String }
 
-// Универсальный ответ для успешных операций
 #[derive(Serialize)]
 struct SimpleResponse { ok: bool, data: Option<serde_json::Value> }
 
@@ -42,55 +41,46 @@ struct AppState {
     db: PgPool,
 }
 
-// Создание заказа
 async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<CreateOrderPayload>) -> impl IntoResponse {
-    // 1. Проверяем, открыта ли смена и получаем номер
-    let shift_res = sqlx::query!("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await;
+    let shift_res = sqlx::query("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1")
+        .fetch_optional(&state.db).await;
+    
     let shift = match shift_res {
-        Ok(Some(s)) => s,
+        Ok(Some(s)) => {
+            use sqlx::Row;
+            s.get::<i32, _>("id")
+        },
         _ => return (StatusCode::BAD_REQUEST, Json(OrderResponse { ok: false, order_number: None, error: Some("Смена закрыта".into()) })),
     };
 
-    // 2. Сохраняем профиль (если его нет)
-    let _ = sqlx::query!(
-        "INSERT INTO profiles (id, first_name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name",
-        payload.user_id, payload.user_name
-    ).execute(&state.db).await;
+    let _ = sqlx::query("INSERT INTO profiles (id, first_name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name")
+        .bind(payload.user_id).bind(&payload.user_name).execute(&state.db).await;
 
-    // 3. Получаем новый номер заказа
-    let order_num_res = sqlx::query!("SELECT COALESCE(MAX(order_number), 0) + 1 as next_num FROM orders WHERE shift_id = $1", shift.id)
-        .fetch_one(&state.db).await.unwrap();
-    let order_num = order_num_res.next_num.unwrap_or(1);
+    let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(order_number), 0) + 1 FROM orders WHERE shift_id = $1")
+        .bind(shift).fetch_one(&state.db).await.unwrap();
+    let order_num = row.0;
 
-    // 4. Создаем сам заказ
     let order_id = uuid::Uuid::new_v4();
-    let _ = sqlx::query!(
-        "INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)",
-        order_id, order_num, payload.user_id, shift.id, payload.comment
-    ).execute(&state.db).await;
+    let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)")
+        .bind(order_id).bind(order_num).bind(payload.user_id).bind(shift).bind(&payload.comment).execute(&state.db).await;
 
-    // 5. Сохраняем состав и считаем сумму
     let mut total = 0;
     let mut items_text = String::new();
     for item in payload.items {
-        let var = sqlx::query!("SELECT p.name as p_name, v.name as v_name, v.price FROM product_variants v JOIN products p ON v.product_id = p.id WHERE v.id = $1", item.variant_id)
-            .fetch_optional(&state.db).await.unwrap();
+        let var: Option<(String, String, i32)> = sqlx::query_as("SELECT p.name, v.name, v.price FROM product_variants v JOIN products p ON v.product_id = p.id WHERE v.id = $1")
+            .bind(item.variant_id).fetch_optional(&state.db).await.unwrap();
         
         if let Some(v) = var {
-            total += v.price.unwrap() * item.qty;
-            items_text.push_str(&format!("▪️ {} ({}) x{} — {} GEL\n", v.p_name, v.v_name, item.qty, v.price.unwrap() * item.qty));
+            total += v.2 * item.qty;
+            items_text.push_str(&format!("▪️ {} ({}) x{} — {} GEL\n", v.0, v.1, item.qty, v.2 * item.qty));
             
-            let _ = sqlx::query!(
-                "INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)",
-                order_id, item.variant_id, v.p_name, v.v_name, v.price, item.qty
-            ).execute(&state.db).await;
+            let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)")
+                .bind(order_id).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
         }
     }
 
-    // 6. Обновляем итоговую сумму заказа
-    let _ = sqlx::query!("UPDATE orders SET total_price = $1 WHERE id = $2", total, order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind(order_id).execute(&state.db).await;
 
-    // 7. Отправляем в Telegram
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}",
         order_num, payload.user_name, items_text, total, payload.comment.map(|c| format!("📝 **Комментарий:** {}", c)).unwrap_or_default()
     );
@@ -99,45 +89,39 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     (StatusCode::OK, Json(OrderResponse { ok: true, order_number: Some(order_num), error: None }))
 }
 
-// Получить активные заказы (для гостя и админки)
 async fn get_active_orders(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let orders = sqlx::query!("SELECT id, order_number, user_id, status, total_price, created_at FROM orders WHERE status IN ('new', 'accepted', 'ready') ORDER BY created_at ASC")
+    let orders: Vec<(uuid::Uuid, i32, i64, String, Option<i32>)> = sqlx::query_as("SELECT id, order_number, user_id, status, total_price FROM orders WHERE status IN ('new', 'accepted', 'ready') ORDER BY created_at ASC")
         .fetch_all(&state.db).await.unwrap_or_default();
     
     let mut result = Vec::new();
     for o in orders {
         result.push(serde_json::json!({
-            "id": o.id, "order_number": o.order_number, "user_id": o.user_id,
-            "status": o.status, "total": o.total_price
+            "id": o.0, "order_number": o.1, "user_id": o.2,
+            "status": o.3, "total": o.4
         }));
     }
     Json(result)
 }
 
-// Управление сменой (открыть/закрыть)
 async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
     
-    let current = sqlx::query!("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap();
+    let current: Option<(i32, bool)> = sqlx::query_as("SELECT id, is_open FROM shifts WHERE is_open = true LIMIT 1").fetch_optional(&state.db).await.unwrap();
     
     if let Some(shift) = current {
-        // Закрываем текущую смену
-        let _ = sqlx::query!("UPDATE shifts SET is_open = false, closed_at = now() WHERE id = $1", shift.id).execute(&state.db).await;
-        // Создаем новую закрытую
-        let _ = sqlx::query!("INSERT INTO shifts (is_open) VALUES (false)").execute(&state.db).await;
+        let _ = sqlx::query("UPDATE shifts SET is_open = false, closed_at = now() WHERE id = $1").bind(shift.0).execute(&state.db).await;
+        let _ = sqlx::query("INSERT INTO shifts (is_open) VALUES (false)").execute(&state.db).await;
     } else {
-        // Открываем новую смену
-        let _ = sqlx::query!("UPDATE shifts SET is_open = true, opened_at = now() WHERE is_open = false ORDER BY id DESC LIMIT 1").execute(&state.db).await;
+        let _ = sqlx::query("UPDATE shifts SET is_open = true, opened_at = now() WHERE is_open = false ORDER BY id DESC LIMIT 1").execute(&state.db).await;
     }
     (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
 }
 
-// Смена статуса заказа
 #[derive(Deserialize)]
 struct StatusPayload { id: String, status: String }
 async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(SimpleResponse{ok: false, data: None})); }
-    let _ = sqlx::query!("UPDATE orders SET status = $1 WHERE id = $2", payload.status, uuid::Uuid::parse_str(&payload.id).unwrap()).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind(uuid::Uuid::parse_str(&payload.id).unwrap()).execute(&state.db).await;
     (StatusCode::OK, Json(SimpleResponse{ok: true, data: None}))
 }
 
