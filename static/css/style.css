@@ -2,38 +2,32 @@
 
 :root {
     --navy: #0f172a;
-    --navy-light: #1e293b;
     --yellow: #facc15;
-    --yellow-hover: #eab308;
     --cream: #f8fafc;
     --white: #ffffff;
     --gray: #64748b;
     --gray-light: #e2e8f0;
     --shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    --shadow-yellow: 0 10px 25px rgba(250, 204, 21, 0.4);
     --radius: 16px;
-    --radius-lg: 24px;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Manrope', sans-serif; -webkit-tap-highlight-color: transparent; }
 
-body { background: var(--cream); color: var(--navy); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+body { background: #e2e8f0; display: flex; justify-content: center; min-height: 100vh; }
 
-#loader { position: fixed; inset: 0; background: var(--navy); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: var(--white); }
-.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.2); border-top-color: var(--yellow); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
-@keyframes spin { to { transform: rotate(360deg); } }
+#app-container { width: 100%; max-width: 480px; background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
 
-.header { background: var(--navy); color: var(--white); padding: 20px; border-radius: 0 0 var(--radius-lg) var(--radius-lg); box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2); z-index: 10; }
+.header { background: var(--navy); color: var(--white); padding: 20px; border-radius: 0 0 24px 24px; box-shadow: 0 4px 15px rgba(15, 23, 42, 0.2); z-index: 10; }
 .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
 .header p { font-size: 14px; color: #94a3b8; margin-top: 4px; }
 
-.main-content { flex: 1; display: flex; overflow: hidden; }
+.main-content { flex: 1; display: flex; overflow: hidden; height: calc(100vh - 90px); }
 
-.sidebar { width: 100px; background: var(--white); overflow-y: auto; border-right: 1px solid var(--gray-light); }
+.sidebar { width: 100px; background: var(--white); overflow-y: auto; border-right: 1px solid var(--gray-light); flex-shrink: 0; }
 .sidebar button { width: 100%; padding: 16px 8px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--gray); cursor: pointer; text-align: left; border-left: 4px solid transparent; transition: 0.2s; }
 .sidebar button.active { color: var(--navy); background: var(--cream); border-left-color: var(--yellow); }
 
-.products-area { flex: 1; padding: 16px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+.products-area { flex: 1; padding: 16px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; background: var(--cream); }
 
 .product-card { background: var(--white); border-radius: var(--radius); padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; cursor: pointer; transition: transform 0.1s; }
 .product-card:active { transform: scale(0.97); }
@@ -44,12 +38,12 @@ body { background: var(--cream); color: var(--navy); height: 100vh; overflow: hi
 .product-price { font-weight: 800; font-size: 15px; }
 .btn-add { width: 28px; height: 28px; border-radius: 50%; background: var(--yellow); color: var(--navy); border: none; font-size: 18px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-.cart-fab { position: fixed; bottom: 20px; left: 20px; right: 20px; background: var(--yellow); color: var(--navy); padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: var(--shadow-yellow); cursor: pointer; z-index: 50; transform: translateY(100px); transition: transform 0.3s; }
+.cart-fab { position: absolute; bottom: 20px; left: 20px; right: 20px; background: var(--yellow); color: var(--navy); padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(250, 204, 21, 0.4); cursor: pointer; z-index: 50; transform: translateY(100px); transition: transform 0.3s; }
 .cart-fab.visible { transform: translateY(0); }
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: flex-end; }
+.modal-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: flex-end; }
 .modal-overlay.open { display: flex; }
-.modal-content { background: var(--white); width: 100%; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s; max-height: 80vh; overflow-y: auto; }
+.modal-content { background: var(--white); width: 100%; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s; max-height: 80vh; overflow-y: auto; }
 .modal-overlay.open .modal-content { transform: translateY(0); }
 .modal-title { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
 
@@ -64,9 +58,9 @@ body { background: var(--cream); color: var(--navy); height: 100vh; overflow: hi
 .cart-controls button { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--white); font-weight: bold; cursor: pointer; }
 .cart-comment { width: 100%; padding: 12px; border: 1px solid var(--gray-light); border-radius: 12px; margin-top: 16px; font-family: inherit; font-size: 14px; resize: none; }
 
-#status-screen { position: fixed; inset: 0; background: var(--cream); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+#status-screen { position: absolute; inset: 0; background: var(--cream); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
 .status-order-num { font-size: 80px; font-weight: 800; color: var(--navy); line-height: 1; margin-bottom: 8px; }
-.status-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: var(--yellow-hover); }
+.status-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #eab308; }
 .status-timer { font-size: 16px; color: var(--gray); margin-bottom: 32px; }
 .status-steps { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; text-align: left; }
 .step { display: flex; align-items: center; gap: 12px; opacity: 0.3; transition: 0.3s; }
