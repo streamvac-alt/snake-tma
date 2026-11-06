@@ -11,22 +11,19 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Manrope', sans-serif; -webkit-tap-highlight-color: transparent; }
 
-body { background: var(--bg); display: flex; justify-content: center; min-height: 100vh; overflow: hidden; }
+body { background: #000; display: flex; justify-content: center; min-height: 100vh; overflow: hidden; }
 
-#app-container { width: 100%; max-width: 480px; background: var(--bg); height: 100vh; display: flex; flex-direction: column; position: relative; }
+#app-container { width: 100%; max-width: 420px; background: var(--bg); height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
 
-/* Шапка */
 .header { padding: 20px 20px 10px; display: flex; justify-content: space-between; align-items: center; }
 .header h1 { font-size: 20px; font-weight: 800; color: var(--text); }
 .header p { font-size: 14px; color: var(--gray); margin-top: 4px; }
 
-/* Горизонтальное меню категорий */
 .categories-scroll { display: flex; gap: 10px; padding: 10px 20px 20px; overflow-x: auto; scrollbar-width: none; }
 .categories-scroll::-webkit-scrollbar { display: none; }
 .category-pill { padding: 10px 20px; background: var(--card); color: var(--text); border-radius: 20px; font-weight: 600; font-size: 14px; white-space: nowrap; cursor: pointer; border: none; transition: 0.2s; }
 .category-pill.active { background: var(--accent); color: #fff; }
 
-/* Сетка товаров */
 .products-area { flex: 1; padding: 0 20px 100px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-content: start; }
 
 .product-card { background: var(--card); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: transform 0.1s; position: relative; }
@@ -37,11 +34,9 @@ body { background: var(--bg); display: flex; justify-content: center; min-height
 
 .btn-add { width: 100%; padding: 10px; border-radius: 12px; background: var(--accent); color: #fff; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
 
-/* Корзина */
 .cart-fab { position: absolute; bottom: 20px; left: 20px; right: 20px; background: var(--accent); color: #fff; padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(255, 107, 0, 0.4); cursor: pointer; z-index: 50; transform: translateY(100px); transition: transform 0.3s; }
 .cart-fab.visible { transform: translateY(0); }
 
-/* Модалки */
 .modal-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: flex-end; }
 .modal-overlay.open { display: flex; }
 .modal-content { background: var(--card); width: 100%; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s; max-height: 80vh; overflow-y: auto; color: var(--text); }
@@ -59,7 +54,6 @@ body { background: var(--bg); display: flex; justify-content: center; min-height
 .cart-controls button { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--card); color: white; font-weight: bold; cursor: pointer; }
 .cart-comment { width: 100%; padding: 12px; border: 1px solid #333; background: #1a1a1a; color: white; border-radius: 12px; margin-top: 16px; font-family: inherit; font-size: 14px; resize: none; }
 
-/* Статус заказа */
 #status-screen { position: absolute; inset: 0; background: var(--bg); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
 .status-order-num { font-size: 80px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 8px; }
 .status-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #fff; }
