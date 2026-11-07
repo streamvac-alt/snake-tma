@@ -27,42 +27,27 @@ struct AppState { bot_token: String, admin_chat_id: String, admin_key: String, d
 
 async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let cats_result: Result<Vec<(i32, String)>, sqlx::Error> = sqlx::query_as("SELECT id, name FROM categories ORDER BY sort_order ASC").fetch_all(&state.db).await;
-    
     let cats = match cats_result {
         Ok(c) => c,
-        Err(e) => {
-            tracing::error!("Ошибка загрузки категорий: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "DB Error" })));
-        }
+        Err(e) => { tracing::error!("Ошибка категорий: {:?}", e); return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "DB Error" }))); }
     };
 
     let mut categories = Vec::new();
     for c in cats { categories.push(serde_json::json!({ "id": c.0, "name": c.1 })); }
 
-    let prods_result: Result<Vec<(i32, i32, String, Option<String>, Option<String>)>, sqlx::Error> = sqlx::query_as(
-        "SELECT id, category_id, name, description, image_url FROM products WHERE is_archived = false"
-    ).fetch_all(&state.db).await;
-
+    let prods_result: Result<Vec<(i32, i32, String, Option<String>, Option<String>)>, sqlx::Error> = sqlx::query_as("SELECT id, category_id, name, description, image_url FROM products WHERE is_archived = false").fetch_all(&state.db).await;
     let prods = match prods_result {
         Ok(p) => p,
-        Err(e) => {
-            tracing::error!("Ошибка загрузки товаров: {:?}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "DB Error" })));
-        }
+        Err(e) => { tracing::error!("Ошибка товаров: {:?}", e); return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "DB Error" }))); }
     };
 
     let mut products = Vec::new();
     for p in prods {
-        let vars: Vec<(i32, String, i32)> = sqlx::query_as(
-            "SELECT id, name, price FROM product_variants WHERE product_id = $1 AND is_stopped = false"
-        ).bind(p.0).fetch_all(&state.db).await.unwrap_or_default();
-
+        let vars: Vec<(i32, String, i32)> = sqlx::query_as("SELECT id, name, price FROM product_variants WHERE product_id = $1 AND is_stopped = false").bind(p.0).fetch_all(&state.db).await.unwrap_or_default();
         let mut variants = Vec::new();
         for v in vars { variants.push(serde_json::json!({ "id": v.0, "name": v.1, "price": v.2 })); }
-        
         products.push(serde_json::json!({ "id": p.0, "category_id": p.1, "name": p.2, "description": p.3, "image_url": p.4, "variants": variants }));
     }
-
     (StatusCode::OK, Json(serde_json::json!({ "categories": categories, "products": products })))
 }
 
@@ -76,7 +61,7 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     let order_id = Uuid::new_v4();
     let comment_text = payload.comment.unwrap_or_default();
     
-    let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)").bind::<Uuid>(order_id).bind(order_num).bind(payload.user_id).bind(shift_id).bind(&comment_text).execute(&state.db).await;
+    let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)").bind(order_id.to_string()).bind(order_num).bind(payload.user_id).bind(shift_id).bind(&comment_text).execute(&state.db).await;
 
     let mut total = 0;
     let mut items_text = String::new();
@@ -85,10 +70,10 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
         if let Some(v) = var {
             total += v.2 * item.qty;
             items_text.push_str(&format!("▪️ {} ({}) x{} — {} GEL\n", v.0, v.1, item.qty, v.2 * item.qty));
-            let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)").bind::<Uuid>(order_id).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
+            let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)").bind(order_id.to_string()).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
         }
     }
-    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind::<Uuid>(order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind(order_id.to_string()).execute(&state.db).await;
 
     let comment_display = if comment_text.is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", comment_text) };
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}", order_num, payload.user_name, items_text, total, comment_display);
@@ -101,7 +86,7 @@ async fn get_active_orders(State(state): State<Arc<AppState>>) -> impl IntoRespo
     let orders: Vec<(Uuid, i32, i64, String, Option<i32>, Option<String>)> = sqlx::query_as("SELECT id, order_number, user_id, status, total_price, comment FROM orders WHERE status IN ('new', 'accepted', 'ready') ORDER BY created_at ASC").fetch_all(&state.db).await.unwrap_or_default();
     let mut result = Vec::new();
     for o in orders {
-        let items: Vec<(String, String, i32, i32)> = sqlx::query_as("SELECT product_name, variant_name, price, qty FROM order_items WHERE order_id = $1").bind(o.0).fetch_all(&state.db).await.unwrap_or_default();
+        let items: Vec<(String, String, i32, i32)> = sqlx::query_as("SELECT product_name, variant_name, price, qty FROM order_items WHERE order_id = $1").bind(o.0.to_string()).fetch_all(&state.db).await.unwrap_or_default();
         let mut items_json = Vec::new();
         for i in items { items_json.push(serde_json::json!({ "product_name": i.0, "variant_name": i.1, "price": i.2, "qty": i.3 })); }
         result.push(serde_json::json!({ "id": o.0, "order_number": o.1, "user_id": o.2, "status": o.3, "total_price": o.4, "comment": o.5, "items": items_json }));
@@ -129,15 +114,13 @@ async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<Ad
 
 async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
-    let order_id = Uuid::parse_str(&payload.id).unwrap();
-    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind::<Uuid>(order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind(&payload.id).execute(&state.db).await;
     (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
 async fn delete_order(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
-    let order_id = Uuid::parse_str(&payload.id).unwrap();
-    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1").bind::<Uuid>(order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1").bind(&payload.id).execute(&state.db).await;
     (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
@@ -157,17 +140,11 @@ async fn main() {
     tracing_subscriber::fmt::init();
     let connection_string = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL");
 
-    let connect_options = PgConnectOptions::from_str(&connection_string)
-        .expect("Неверная строка подключения")
-        .statement_cache_capacity(0);
-
-    let db = match PgPoolOptions::new()
-        .max_connections(5)
-        .connect_with(connect_options)
-        .await {
-            Ok(pool) => pool,
-            Err(e) => { tracing::error!("ОШИБКА БД: {}", e); std::process::exit(1); }
-        };
+    let connect_options = PgConnectOptions::from_str(&connection_string).expect("Неверная строка подключения").statement_cache_capacity(0);
+    let db = match PgPoolOptions::new().max_connections(5).connect_with(connect_options).await {
+        Ok(pool) => pool,
+        Err(e) => { tracing::error!("ОШИБКА БД: {}", e); std::process::exit(1); }
+    };
 
     let state = Arc::new(AppState {
         bot_token: env::var("BOT_TOKEN").unwrap_or_default(),
