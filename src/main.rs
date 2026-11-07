@@ -10,7 +10,6 @@ use std::{env, sync::Arc, str::FromStr};
 use tower_http::services::ServeDir;
 use sqlx::postgres::{PgPoolOptions, PgConnectOptions};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 struct CreateOrderPayload { user_id: i64, user_name: String, items: Vec<OrderItemPayload>, comment: Option<String> }
@@ -61,10 +60,12 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     let _ = sqlx::query("INSERT INTO profiles (id, first_name) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET first_name = EXCLUDED.first_name").bind(payload.user_id).bind(&payload.user_name).execute(&state.db).await;
     let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(order_number), 0) + 1 FROM orders WHERE shift_id = $1").bind(shift_id).fetch_one(&state.db).await.unwrap();
     let order_num = row.0;
-    let order_id = Uuid::new_v4();
-    let comment_text = payload.comment.unwrap_or_default();
     
-    let _ = sqlx::query("INSERT INTO orders (id, order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, $4, 'new', $5)").bind(order_id.to_string()).bind(order_num).bind(payload.user_id).bind(shift_id).bind(&comment_text).execute(&state.db).await;
+    // Генерируем UUID прямо в Postgres через gen_random_uuid()
+    let order_id_res: (String,) = sqlx::query_as("INSERT INTO orders (order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, 'new', $4) RETURNING id::text")
+        .bind(order_num).bind(payload.user_id).bind(shift_id).bind(&payload.comment.unwrap_or_default())
+        .fetch_one(&state.db).await.unwrap();
+    let order_id = order_id_res.0;
 
     let mut total = 0;
     let mut items_text = String::new();
@@ -73,12 +74,12 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
         if let Some(v) = var {
             total += v.2 * item.qty;
             items_text.push_str(&format!("▪️ {} ({}) x{} — {} GEL\n", v.0, v.1, item.qty, v.2 * item.qty));
-            let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)").bind(order_id.to_string()).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
+            let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)").bind(&order_id).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
         }
     }
-    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind(order_id.to_string()).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind(&order_id).execute(&state.db).await;
 
-    let comment_display = if comment_text.is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", comment_text) };
+    let comment_display = if payload.comment.as_deref().unwrap_or("").is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", payload.comment.unwrap_or_default()) };
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}", order_num, payload.user_name, items_text, total, comment_display);
     send_tg(&state.bot_token, &state.admin_chat_id, &msg).await;
 
@@ -86,10 +87,10 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
 }
 
 async fn get_active_orders(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let orders: Vec<(Uuid, i32, i64, String, Option<i32>, Option<String>)> = sqlx::query_as("SELECT id, order_number, user_id, status, total_price, comment FROM orders WHERE status IN ('new', 'accepted', 'ready') ORDER BY created_at ASC").fetch_all(&state.db).await.unwrap_or_default();
+    let orders: Vec<(String, i32, i64, String, Option<i32>, String)> = sqlx::query_as("SELECT id::text, order_number, user_id, status, total_price, COALESCE(comment, '') FROM orders WHERE status IN ('new', 'accepted', 'ready') ORDER BY created_at ASC").fetch_all(&state.db).await.unwrap_or_default();
     let mut result = Vec::new();
     for o in orders {
-        let items: Vec<(String, String, i32, i32)> = sqlx::query_as("SELECT product_name, variant_name, price, qty FROM order_items WHERE order_id = $1").bind(o.0.to_string()).fetch_all(&state.db).await.unwrap_or_default();
+        let items: Vec<(String, String, i32, i32)> = sqlx::query_as("SELECT product_name, variant_name, price, qty FROM order_items WHERE order_id = $1::uuid").bind(&o.0).fetch_all(&state.db).await.unwrap_or_default();
         let mut items_json = Vec::new();
         for i in items { items_json.push(serde_json::json!({ "product_name": i.0, "variant_name": i.1, "price": i.2, "qty": i.3 })); }
         result.push(serde_json::json!({ "id": o.0, "order_number": o.1, "user_id": o.2, "status": o.3, "total_price": o.4, "comment": o.5, "items": items_json }));
@@ -117,13 +118,13 @@ async fn toggle_shift(State(state): State<Arc<AppState>>, Query(query): Query<Ad
 
 async fn update_status(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
-    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2").bind(&payload.status).bind(&payload.id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = $1 WHERE id = $2::uuid").bind(&payload.status).bind(&payload.id).execute(&state.db).await;
     (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
 async fn delete_order(State(state): State<Arc<AppState>>, Query(query): Query<AdminQuery>, Json(payload): Json<StatusPayload>) -> impl IntoResponse {
     if query.key != state.admin_key { return (StatusCode::UNAUTHORIZED, Json(serde_json::json!({ "ok": false }))); }
-    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1").bind(&payload.id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET status = 'deleted' WHERE id = $1::uuid").bind(&payload.id).execute(&state.db).await;
     (StatusCode::OK, Json(serde_json::json!({ "ok": true })))
 }
 
