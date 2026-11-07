@@ -35,7 +35,7 @@ async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let mut categories = Vec::new();
     for c in cats { categories.push(serde_json::json!({ "id": c.0, "name": c.1 })); }
 
-    let prods_result: Result<Vec<(i32, i32, String, Option<String>, Option<String>)>, sqlx::Error> = sqlx::query_as("SELECT id, category_id, name, description, image_url FROM products WHERE is_archived = false").fetch_all(&state.db).await;
+    let prods_result: Result<Vec<(i32, i32, String, Option<String>, Option<String>, bool)>, sqlx::Error> = sqlx::query_as("SELECT id, category_id, name, description, image_url, is_hit FROM products WHERE is_archived = false").fetch_all(&state.db).await;
     let prods = match prods_result {
         Ok(p) => p,
         Err(e) => { tracing::error!("Ошибка товаров: {:?}", e); return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": "DB Error" }))); }
@@ -46,7 +46,10 @@ async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
         let vars: Vec<(i32, String, i32)> = sqlx::query_as("SELECT id, name, price FROM product_variants WHERE product_id = $1 AND is_stopped = false").bind(p.0).fetch_all(&state.db).await.unwrap_or_default();
         let mut variants = Vec::new();
         for v in vars { variants.push(serde_json::json!({ "id": v.0, "name": v.1, "price": v.2 })); }
-        products.push(serde_json::json!({ "id": p.0, "category_id": p.1, "name": p.2, "description": p.3, "image_url": p.4, "variants": variants }));
+        
+        products.push(serde_json::json!({ 
+            "id": p.0, "category_id": p.1, "name": p.2, "description": p.3, "image_url": p.4, "is_hit": p.5, "variants": variants 
+        }));
     }
     (StatusCode::OK, Json(serde_json::json!({ "categories": categories, "products": products })))
 }
