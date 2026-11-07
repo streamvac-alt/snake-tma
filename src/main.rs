@@ -26,7 +26,6 @@ struct StopPayload { variant_id: i32, is_stopped: bool }
 struct AppState { bot_token: String, admin_chat_id: String, admin_key: String, db: PgPool }
 
 async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // 1. Получаем категории (выводим ошибку, если не удалось)
     let cats_result: Result<Vec<(i32, String)>, sqlx::Error> = sqlx::query_as("SELECT id, name FROM categories ORDER BY sort_order ASC").fetch_all(&state.db).await;
     
     let cats = match cats_result {
@@ -40,7 +39,6 @@ async fn get_menu(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let mut categories = Vec::new();
     for c in cats { categories.push(serde_json::json!({ "id": c.0, "name": c.1 })); }
 
-    // 2. Получаем товары
     let prods_result: Result<Vec<(i32, i32, String, Option<String>, Option<String>)>, sqlx::Error> = sqlx::query_as(
         "SELECT id, category_id, name, description, image_url FROM products WHERE is_archived = false"
     ).fetch_all(&state.db).await;
@@ -158,10 +156,17 @@ async fn send_tg(token: &str, chat_id: &str, text: &str) {
 async fn main() {
     tracing_subscriber::fmt::init();
     let connection_string = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL");
-    let db = match PgPoolOptions::new().max_connections(5).connect(&connection_string).await {
-        Ok(pool) => pool,
-        Err(e) => { tracing::error!("ОШИБКА БД: {}", e); std::process::exit(1); }
-    };
+    
+    // ⚠️ ВОТ ЗДЕСЬ МЫ ОТКЛЮЧАЕМ КЭШ
+    let db = match PgPoolOptions::new()
+        .max_connections(5)
+        .statement_cache_capacity(0) 
+        .connect(&connection_string)
+        .await {
+            Ok(pool) => pool,
+            Err(e) => { tracing::error!("ОШИБКА БД: {}", e); std::process::exit(1); }
+        };
+        
     let state = Arc::new(AppState {
         bot_token: env::var("BOT_TOKEN").unwrap_or_default(),
         admin_chat_id: env::var("ADMIN_CHAT_ID").unwrap_or_default(),
