@@ -36,11 +36,8 @@ function selectCategory(id) {
     
     const area = document.getElementById('products-area');
     const cat = categories.find(c => c.id === activeCategoryId);
-    
-    // Берем товары этой категории
     const filtered = products.filter(p => p.category_id === activeCategoryId);
     
-    // Если это первая категория (Хиты), мы показываем все товары с флагом is_hit
     let displayProducts = filtered;
     if (cat.name === 'Хиты') {
         displayProducts = products.filter(p => p.is_hit);
