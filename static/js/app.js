@@ -24,8 +24,7 @@ async function init() {
 }
 
 function renderCategories() {
-    const container = document.getElementById('categories-scroll');
-    container.innerHTML = categories.map(c => `
+    document.getElementById('categories-scroll').innerHTML = categories.map(c => `
         <button class="category-pill" onclick="selectCategory(${c.id})" id="cat-${c.id}">${c.name}</button>
     `).join('');
 }
@@ -37,19 +36,26 @@ function selectCategory(id) {
     
     const area = document.getElementById('products-area');
     const cat = categories.find(c => c.id === activeCategoryId);
+    
+    // Берем товары этой категории
     const filtered = products.filter(p => p.category_id === activeCategoryId);
+    
+    // Если это первая категория (Хиты), мы показываем все товары с флагом is_hit
+    let displayProducts = filtered;
+    if (cat.name === 'Хиты') {
+        displayProducts = products.filter(p => p.is_hit);
+    }
 
-    if (filtered.length === 0) {
-        area.innerHTML = `<div class="products-section"><div class="empty" style="text-align:center;color:#a1a1a1;padding:20px;">В этой категории пока пусто</div></div>`;
+    if (displayProducts.length === 0) {
+        area.innerHTML = `<div class="products-section"><div class="empty" style="text-align:center;color:#a1a1a1;padding:20px;">Здесь пока пусто</div></div>`;
         return;
     }
 
-    // Формируем секцию с карточками
     area.innerHTML = `
         <div class="products-section">
             <div class="section-title">${cat.name}</div>
             <div class="products-row">
-                ${filtered.map(p => {
+                ${displayProducts.map(p => {
                     const img = p.image_url || 'https://via.placeholder.com/150/262626/FFFFFF?text=Food';
                     return `
                     <div class="product-card" onclick="openProduct(${p.id})">
