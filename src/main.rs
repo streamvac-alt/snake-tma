@@ -6,9 +6,9 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Arc};
+use std::{env, sync::Arc, str::FromStr};
 use tower_http::services::ServeDir;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgPoolOptions, PgConnectOptions};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -156,17 +156,19 @@ async fn send_tg(token: &str, chat_id: &str, text: &str) {
 async fn main() {
     tracing_subscriber::fmt::init();
     let connection_string = env::var("SUPABASE_URL").expect("Нет SUPABASE_URL");
-    
-    // ⚠️ ВОТ ЗДЕСЬ МЫ ОТКЛЮЧАЕМ КЭШ
+
+    let connect_options = PgConnectOptions::from_str(&connection_string)
+        .expect("Неверная строка подключения")
+        .statement_cache_capacity(0);
+
     let db = match PgPoolOptions::new()
         .max_connections(5)
-        .statement_cache_capacity(0) 
-        .connect(&connection_string)
+        .connect_with(connect_options)
         .await {
             Ok(pool) => pool,
             Err(e) => { tracing::error!("ОШИБКА БД: {}", e); std::process::exit(1); }
         };
-        
+
     let state = Arc::new(AppState {
         bot_token: env::var("BOT_TOKEN").unwrap_or_default(),
         admin_chat_id: env::var("ADMIN_CHAT_ID").unwrap_or_default(),
