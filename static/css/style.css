@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap');
 
 :root {
-    --bg: #1a1a1a;
+    --bg: #121212;
     --card: #262626;
     --text: #ffffff;
     --gray: #a1a1a1;
@@ -20,17 +20,17 @@ body { background: #000; display: flex; justify-content: center; min-height: 100
 .header h1 { font-size: 22px; font-weight: 800; color: var(--text); }
 .header p { font-size: 14px; color: var(--gray); margin-top: 4px; }
 
-/* Горизонтальное меню категорий (фильтры) */
+/* Горизонтальное меню категорий (пилюли) */
 .categories-scroll { display: flex; gap: 10px; padding: 10px 20px 20px; overflow-x: auto; scrollbar-width: none; }
 .categories-scroll::-webkit-scrollbar { display: none; }
-.category-pill { padding: 12px 24px; background: var(--card); color: var(--text); border-radius: 30px; font-weight: 600; font-size: 15px; white-space: nowrap; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+.category-pill { padding: 10px 20px; background: var(--card); color: var(--text); border-radius: 30px; font-weight: 600; font-size: 14px; white-space: nowrap; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
 .category-pill.active { background: transparent; border-color: var(--accent); color: var(--accent); }
 
 /* Секции с товарами */
 .products-section { margin-bottom: 30px; }
 .section-title { font-size: 24px; font-weight: 800; color: var(--text); padding: 0 20px 15px; }
 
-/* Горизонтальная лента карточек (как "Римские пиццы") */
+/* Горизонтальная лента карточек */
 .products-row { display: flex; gap: 15px; padding: 0 20px 10px; overflow-x: auto; scrollbar-width: none; }
 .products-row::-webkit-scrollbar { display: none; }
 
@@ -43,7 +43,7 @@ body { background: #000; display: flex; justify-content: center; min-height: 100
 
 .btn-add { width: 100%; padding: 10px; border-radius: 12px; background: var(--accent); color: #fff; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
 
-/* Корзина */
+/* Корзина (плавающая кнопка) */
 .cart-fab { position: fixed; bottom: 20px; left: 50%; transform: translate(-50%, 150px); width: calc(100% - 40px); max-width: 440px; background: var(--accent); color: #fff; padding: 16px 20px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 16px; box-shadow: 0 10px 25px rgba(255, 107, 0, 0.4); cursor: pointer; z-index: 50; transition: transform 0.3s; }
 .cart-fab.visible { transform: translate(-50%, 0); }
 
@@ -65,6 +65,7 @@ body { background: #000; display: flex; justify-content: center; min-height: 100
 .cart-controls button { width: 24px; height: 24px; border-radius: 50%; border: none; background: var(--card); color: white; font-weight: bold; cursor: pointer; }
 .cart-comment { width: 100%; padding: 12px; border: 1px solid #333; background: #1a1a1a; color: white; border-radius: 12px; margin-top: 16px; font-family: inherit; font-size: 14px; resize: none; }
 
+/* Экран статуса */
 #status-screen { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
 .status-order-num { font-size: 80px; font-weight: 800; color: var(--accent); line-height: 1; margin-bottom: 8px; }
 .status-title { font-size: 24px; font-weight: 700; margin-bottom: 24px; color: #fff; }
