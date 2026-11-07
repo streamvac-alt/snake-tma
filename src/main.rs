@@ -61,9 +61,11 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
     let row: (i32,) = sqlx::query_as("SELECT COALESCE(MAX(order_number), 0) + 1 FROM orders WHERE shift_id = $1").bind(shift_id).fetch_one(&state.db).await.unwrap();
     let order_num = row.0;
     
-    // Генерируем UUID прямо в Postgres через gen_random_uuid()
+    // ВОТ ТУТ ИСПРАВЛЕНИЕ: клонируем комментарий перед передачей в базу
+    let comment_text = payload.comment.clone().unwrap_or_default();
+
     let order_id_res: (String,) = sqlx::query_as("INSERT INTO orders (order_number, user_id, shift_id, status, comment) VALUES ($1, $2, $3, 'new', $4) RETURNING id::text")
-        .bind(order_num).bind(payload.user_id).bind(shift_id).bind(&payload.comment.unwrap_or_default())
+        .bind(order_num).bind(payload.user_id).bind(shift_id).bind(&comment_text)
         .fetch_one(&state.db).await.unwrap();
     let order_id = order_id_res.0;
 
@@ -77,9 +79,10 @@ async fn create_order(State(state): State<Arc<AppState>>, Json(payload): Json<Cr
             let _ = sqlx::query("INSERT INTO order_items (order_id, variant_id, product_name, variant_name, price, qty) VALUES ($1, $2, $3, $4, $5, $6)").bind(&order_id).bind(item.variant_id).bind(&v.0).bind(&v.1).bind(v.2).bind(item.qty).execute(&state.db).await;
         }
     }
-    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2").bind(total).bind(&order_id).execute(&state.db).await;
+    let _ = sqlx::query("UPDATE orders SET total_price = $1 WHERE id = $2::uuid").bind(total).bind(&order_id).execute(&state.db).await;
 
-    let comment_display = if payload.comment.as_deref().unwrap_or("").is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", payload.comment.unwrap_or_default()) };
+    // ИСПОЛЬЗУЕМ comment_text (который мы сохранили)
+    let comment_display = if comment_text.is_empty() { "".to_string() } else { format!("📝 **Комментарий:** {}", comment_text) };
     let msg = format!("🔥 **НОВЫЙ ЗАКАЗ №{}**\n\n👤 **Гость:** {}\n🛒 **Состав:**\n{}\n💰 **Итого:** {} GEL\n{}", order_num, payload.user_name, items_text, total, comment_display);
     send_tg(&state.bot_token, &state.admin_chat_id, &msg).await;
 
